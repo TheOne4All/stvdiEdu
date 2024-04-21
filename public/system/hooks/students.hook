@@ -36,7 +36,7 @@ class Students extends Processor
     {
         // Package limit Verification
         $allStudents = $this->get_record('fx_person', 'created_at')->where('org_id', $_SESSION['user_session']['org_id'])->go();
-        // if (count($allStudents) >= $_SESSION['package']['examinees']) {$this->with('danger', 'Package Limit Exceeded!')->redirect('students/index');}
+        // if (count($allStudents) >= $_SESSION['package']['Students']) {$this->with('danger', 'Package Limit Exceeded!')->redirect('students/index');}
 
         extract($_POST);
         if (isset($_FILES)) {
@@ -77,7 +77,7 @@ class Students extends Processor
             'user_email' => $email,
             'org_id' => $_SESSION['user_session']['org_id'],
         ];
-        $examinee_array = [
+        $Student_array = [
             'user_id' => $user_array['user_id'],
             'firstname' => $firstname,
             'lastname' => $lastname,
@@ -92,21 +92,21 @@ class Students extends Processor
             'org_id' => $_SESSION['user_session']['org_id'],
         ];
 
-        if (is_null($examinee_array['img'])) {unset($examinee_array['img']);}
+        if (is_null($Student_array['img'])) {unset($Student_array['img']);}
         $user_insert = $this->add_record('fx_user', $user_array)->go();
-        $examinee_insert = $this->add_record('fx_person', $examinee_array)->go();
-        $result = array($user_insert, $examinee_insert);
+        $Student_insert = $this->add_record('fx_person', $Student_array)->go();
+        $result = array($user_insert, $Student_insert);
         switch ($result) {
             case array(false, true):
                 $this->delete_record('fx_person', ['user_id' => $user_array['user_id']])->and_where('org_id', $_SESSION['user_session']['org_id'])->go();
-                $this->with('danger', 'Add Examinee was Unsuccessful!')->redirect('students/index');
+                $this->with('danger', 'Add Student was Unsuccessful!')->redirect('students/index');
                 break;
             case array(true, false):
                 $this->delete_record('fx_user', ['user_id' => $user_array['user_id']])->and_where('org_id', $_SESSION['user_session']['org_id'])->go();
-                $this->with('danger', 'Add Examinee was Unsuccessful!')->redirect('students/index');
+                $this->with('danger', 'Add Student was Unsuccessful!')->redirect('students/index');
                 break;
             case array(false, false):
-                $this->with('danger', 'Add Examinee was Unsuccessful!')->redirect('students/index');
+                $this->with('danger', 'Add Student was Unsuccessful!')->redirect('students/index');
                 break;
             default:
 
@@ -115,7 +115,7 @@ class Students extends Processor
                 // end send email
 
                 isset($img) ? $_SESSION['user_session']['img'] = $img : null;
-                $_SESSION['log']['note'] = 'Examinee Added Successfully!';
+                $_SESSION['log']['note'] = 'Student Added Successfully!';
                 $this->add_record('fx_log', $_SESSION['log'])->go();
                 $this->with('success', $mail_status . $_SESSION['log']['note'])->redirect('students/index');
                 break;
@@ -142,11 +142,11 @@ class Students extends Processor
         $result = $this->update_record('fx_person', $_POST)->where('user_id', $user_id)->and_where('org_id', $_SESSION['user_session']['org_id'])->go();
         switch ($result) {
             case false:
-                $this->with('danger', 'Update Examinee was Unsuccessful!')->redirect('students/index');
+                $this->with('danger', 'Update Student was Unsuccessful!')->redirect('students/index');
                 break;
             default:
                 isset($_POST['img']) ? $_SESSION['user_session']['img'] = $_POST['img'] : null;
-                $_SESSION['log']['note'] = 'Examinee Updated Successfully!';
+                $_SESSION['log']['note'] = 'Student Updated Successfully!';
                 $this->add_record('fx_log', $_SESSION['log'])->go();
                 $this->with('success', $_SESSION['log']['note'])->redirect('students/index');
                 break;
@@ -165,7 +165,7 @@ class Students extends Processor
         } else {
             $this->delete_record('fx_user', $_POST)->and_where('org_id', $_SESSION['user_session']['org_id'])->go();
         }
-        $_SESSION['log']['note'] = 'Examinee(s) Deleted Successfully!';
+        $_SESSION['log']['note'] = 'Student(s) Deleted Successfully!';
         // $this->add_record('fx_log', $_SESSION['log'])->go();
         $this->with('success', $_SESSION['log']['note'])->redirect('students/index');
     }
