@@ -1,0 +1,29 @@
+<?php
+
+class Errors extends Processor
+{
+
+    public function __construct()
+    {
+    }
+
+    public function index()
+    {
+        $this->show('resources/pages/errors/index');
+    }
+
+    public function error_403()
+    {
+        $this->show('resources/pages/errors/403');
+    }
+
+    public function error_404()
+    {
+        $this->show('resources/pages/errors/404');
+    }
+
+    public function error_500()
+    {
+        $this->show('resources/pages/errors/500');
+    }
+}

@@ -1,0 +1,1186 @@
+<?php
+
+/**
+ *
+ * This MySQLi database class has a clean and common methods that enable do database CRUD function.
+ *
+ * @version: 7.09.20
+ * @package Fynix Framework
+ * @author: Jencube Team
+ * @license: http://opensource.org/licenses/gpl-license.php
+ * GNU General Public License (GPL)
+ * @copyright: Copyright (c) 2013 - 2020 Jencube
+ * @twitter: @deusex0 & @One_Oracle
+ * @filesource system/libraries/database/mysqliDB.lib
+ *
+ **/
+
+class MySQLiDB
+{
+
+    /**
+     *
+     * Database connection link
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_conn;
+
+    /**
+     *
+     * Database User
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_DBUsername = 'root';
+
+    /**
+     *
+     * Database Password
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_DBPassword;
+
+    /**
+     *
+     * Database Name
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_DBName;
+
+    /**
+     *
+     * Database Host
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_DBHost = 'localhost';
+
+    /**
+     *
+     * Database Port
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_DBPort = '3360';
+
+    /**
+     *
+     * Database table columns collation
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_DBCollate = 'utf8_general_ci';
+
+    /**
+     *
+     * Database table columns charset
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_DBCharset = 'utf8';
+
+    /**
+     *
+     * To make a remote connection
+     *
+     * @access Private
+     * @var Bool
+     *
+     **/
+    private $_remote = false;
+
+    /**
+     *
+     * Query results
+     *
+     * @access Private
+     * @var Bool | Resource
+     *
+     **/
+    private $_query = 0;
+
+    /**
+     *
+     * SQL query string
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_sqlQuery = null;
+
+    /**
+     *
+     * Query fetch results
+     *
+     * @access Private
+     * @var Mixed
+     *
+     **/
+    private $queryResult;
+
+    /**
+     *
+     * Check if database connection is closed
+     *
+     * @access Private
+     * @var Bool
+     *
+     **/
+    private $_closeDB = false;
+
+    /**
+     *
+     * Fetch all result type
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_resultType = MYSQLI_BOTH;
+
+    /**
+     *
+     * Check if query data clear / kill / destroy
+     *
+     * @access Private
+     * @var Bool
+     *
+     **/
+    private $_clearQuery = false;
+
+    /**
+     *
+     * Query count
+     *
+     * @access Public
+     * @var Integer
+     *
+     **/
+    public $_queryCount = 0;
+
+    /**
+     *
+     * To suppress / show errors
+     *
+     * @access Private
+     * @var Bool
+     *
+     **/
+    private $_DBShowErrors = true;
+
+    /**
+     *
+     * Number of rows affected by previous query
+     *
+     * @access Public
+     * @var Integer
+     *
+     **/
+    public $affectedRows = 0;
+
+    /**
+     *
+     * AUTO_INCREMENT generated ID by the previous query
+     *
+     * @access Public
+     * @var Integer
+     *
+     **/
+    public $insertID = 0;
+
+    /**
+     *
+     * Previous query row count
+     *
+     * @access Public
+     * @var Integer
+     *
+     **/
+    public $numRows = 0;
+
+    /**
+     *
+     * Number of column in query result
+     *
+     * @access Public
+     * @var Integer
+     *
+     **/
+    public $numFields = 0;
+
+    /**
+     *
+     * Error message
+     *
+     * @access Public
+     * @var Array
+     *
+     **/
+    public $DBErrorMsg = array();
+
+    /**
+     *
+     * Database error code
+     *
+     * @access Public
+     * @var Integer
+     *
+     **/
+    public $DBErrorNo;
+
+    /**
+     *
+     * Log statement
+     *
+     * @access Public
+     * @var String
+     *
+     **/
+    public $logStm = '';
+
+    /**
+     *
+     * Language
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_lang = 'en-uk';
+
+    /**
+     *
+     * Class constructor initialization to set the class
+     * properties and connection to the database
+     *
+     * @access Public
+     * @param Array
+     *
+     **/
+    public function __construct($config = array())
+    {
+        // Log action: Fynx Database Initialized
+        $this->_Remote = (isset($config['remote'])) ? $config['remote'] : $this->_remote;
+        $this->_DBPort = (isset($config['db_port'])) ? $config['db_port'] : $this->_DBPort;
+        $this->_DBUsername = (isset($config['db_user'])) ? $config['db_user'] : $this->_DBUsername;
+        $this->_DBPassword = (isset($config['db_pass'])) ? $config['db_pass'] : '';
+        $this->_DBName = (isset($config['db_name'])) ? $config['db_name'] : '';
+        $this->_DBHost = (isset($config['db_host'])) ? $config['db_host'] : $this->_DBHost;
+        $this->_DBCharset = (isset($config['db_charset'])) ? $config['db_charset'] : $this->_DBCharset;
+        $this->_DBCollate = (isset($config['db_collate'])) ? $config['db_collate'] : $this->_DBCollate;
+        $this->_DBShowErrors = (isset($config['db_show_errors'])) ? true : false;
+        $this->_lang = (isset($config['default_lang'])) ? $config['default_lang'] : $this->_lang;
+
+        if (isset($config['db_error_report']) && !empty($config['db_error_report'])) {
+            // Log action: Internal report functions enabled
+            // activate reporting
+            @mysqli_report($config['db_error_report']);
+        }
+
+        if (!$this->is_connected()) {
+            $this->_connect();
+        }
+    }
+
+    /**
+     *
+     * Instantiate a database connection
+     *
+     * @access Private
+     * @return Bool
+     *
+     **/
+    private function _connect()
+    {
+        // Log action: Connecting to Database
+        if (!$this->_remote) {
+            if (empty($this->_DBName) || $this->_DBName == '') {
+                $this->_conn = @mysqli_connect($this->_DBHost, $this->_DBUsername, $this->_DBPassword);
+            } else {
+                $this->_conn = @mysqli_connect($this->_DBHost, $this->_DBUsername, $this->_DBPassword, $this->_DBName);
+            }
+        } else {
+            if (empty($this->_DBName) || $this->_DBName == '') {
+                $this->_conn = @mysqli_connect($this->_DBHost . ':' . $this->_port, $this->_DBUsername, $this->_DBPassword);
+            } else {
+                $this->_conn = @mysqli_connect($this->_DBHost . ':' . $this->_port, $this->_DBUsername, $this->_DBPassword, $this->_DBName);
+            }
+        }
+
+        if ($this->_conn === false) {
+            // Log action: Database connection error: error message $this->DBErrorMsg;
+            if ($this->_DBErrorNo = @mysqli_connect_errno($this->_conn)) {
+                $this->DBErrorMsg = "[" . $this->_DBErrorNo . "] " . @mysqli_connect_error();
+                $this->disconnect();
+                return false;
+                exit();
+            }
+
+        }
+        // Log action: Database connection successful
+        return true;
+    }
+
+    /**
+     *
+     * Check if there is a database connection
+     *
+     * @access Public
+     * @return Bool
+     *
+     **/
+    public function is_connected()
+    {
+        // Log here: Checking if database is still connected
+        return ($this->_conn) ? true : false;
+    }
+
+    /**
+     *
+     * Close/kill the database connection and query results
+     *
+     * @access Public
+     * @return Bool
+     *
+     **/
+    public function disconnect()
+    {
+        if (!$this->_closeDB) {
+            // Log this: Disconnecting database
+            $this->_close_db();
+        }
+        // Log this: Database connection does not exist, it might have been closed
+        return true;
+    }
+
+    /**
+     *
+     * Close a previously opened database connection
+     *
+     * @access Private
+     * @return Bool
+     *
+     **/
+    private function _close_db()
+    {
+        // Log this: Closing database connection
+        if (!@mysqli_close($this->_conn)) {
+            // Log this: Unable to close database: Mysql error $this->DBErrorMsg
+            return $this->_sql_error();
+        }
+
+        if (is_resource($this->_query)) {
+            $this->_free_memory();
+        }
+
+        $this->_closeDB = true;
+        $this->_conn = null;
+        $this->_sqlQuery = null;
+        $this->affectedRows = 0;
+        $this->numFields = 0;
+        $this->numRows = 0;
+        $this->errorMsg = null;
+        $this->_queryCount = 0;
+        // Log this: Database connectoin close successfully
+        return true;
+    }
+
+    /**
+     *
+     * Free result memory of query results
+     *
+     * @access private
+     * @return bool
+     * @param resource $result -> result identifier
+     *
+     **/
+    private function _free_memory($queryResult = null)
+    {
+        // Log this: Freeing all memory associated with recent query results
+        if (is_null($queryResult)) {
+            $queryResult = $this->_query;
+        }
+
+        if (!is_null($queryResult) || @mysqli_free_result($queryResult)) {
+            $this->_clearQuery = true;
+            // Log this: Query results free from memory successfully
+            return true;
+        }
+        // Log this: Unable to free memory of query results: Mysql error $this->DBErrorMsg
+        return $this->_sql_error();
+    }
+
+    /**
+     *
+     * Change/Select a database different from the current database
+     *
+     * @access Public
+     * @return Bool
+     * @param String $db -> The database name
+     * @param resource $conn -> The link indentifier
+     *
+     **/
+    public function select_db($db = null, $conn = null)
+    {
+        if (!is_null($db)) {
+            $this->dbName = $db;
+        }
+
+        // Log this: Selecting $this->dbName database
+
+        if (!is_null($conn)) {
+            $this->_conn = $conn;
+        }
+
+        if (!@mysqli_select_db($this->_conn, $this->dbName)) {
+            if ($this->_sql_error()) {
+                // Log this: Unable to select $this->dbName database: Mysql error $this->errorMsg
+                return false;
+                exit();
+            }
+            return false;
+            exit();
+        }
+        $this->set_charset($this->_conn);
+        // Log this: $this->dbName has been successfully selected
+        return true;
+    }
+
+    /**
+     *
+     * Perform a database query
+     *
+     * @access Public
+     * @return Bool | Integer | Object
+     * @param string $SQL -> Database query
+     *
+     **/
+    public function query($SQL = null, $method = null)
+    {
+        if (!$this->is_connected()) {
+            $this->_connect();
+        }
+
+        if (!$this->_clearQuery) {
+            $this->_free_memory();
+        }
+
+        $this->_sqlQuery = (!is_null($SQL)) ? $SQL : $this->_sqlQuery;
+
+        if (!$this->_sqlQuery) {
+            // Log this: Unable to run this query: Mysql error $this->errorMsg
+            return $this->_sql_error();
+        }
+
+        if ($method == 'multi') {
+            $this->_query = @mysqli_multi_query($this->_conn, $this->_sqlQuery);
+        } else {
+            $this->_query = @mysqli_query($this->_conn, $this->_sqlQuery);
+        }
+
+        if (!$this->_query) {
+            // Log this: Unable to run this query: Mysql error $this->errorMsg
+            return $this->_sql_error();
+        }
+
+        $this->_queryCount++;
+        $this->_num_rows();
+        $this->_num_fields();
+        unset($SQL);
+        // Log this: Query successfully executed: $this->_sqlQuery
+        return true;
+
+    }
+
+    /**
+     *
+     * Set database query string
+     *
+     * @access Public
+     * @param string $SQL -> Database SQL query
+     *
+     **/
+    public function set_query_string($SQL)
+    {
+        // Log this: Updating query string
+        $this->_sqlQuery = $SQL;
+        unset($SQL);
+        // Log this: Query string updated successfully
+
+    }
+
+    /**
+     *
+     * Return query string
+     *
+     * @access Public
+     * @return Bool | String
+     *
+     **/
+    public function get_query_string()
+    {
+        // Log this: Getting query string
+        return (!is_null($this->_sqlQuery)) ? $this->_sqlQuery : false;
+    }
+
+    /**
+     *
+     * Set fetch result type
+     *
+     * @access Public
+     * @param string $resultType -> Type of Array (i.e. MYSQLI_ASSOC, MYSQLI_NUM, or MYSQLI_BOTH )
+     *
+     **/
+    public function set_fetch_result_type($resultType)
+    {
+        // Log this: Setting fetch result type
+        $this->_resultType = $resultType;
+        // Log this: Result type has been set to $this->_resultType successfully
+        unset($resultType);
+    }
+
+    /**
+     *
+     * Get results rows using any of the database fetch methods
+     *
+     * @access Public
+     * @return Bool | Array | Object
+     * @param String $type -> Fetch type ie: [0]object/obj | [1]array/arr | [2]row | [3]assoc | [4]field | [5]all(assoc,array)
+     *
+     **/
+    public function fetch($option = null)
+    {
+
+        // Log this: Initiating fetch
+        switch (strtolower($option)) {
+            case in_array($option, array('object', 'obj', 'o', 1)):
+                // Log this: Fetch_object() called
+                return $this->fetch_object();
+                break;
+            case in_array($option, array('array', 'arr', 'ar', 2)):
+                // Log this: Fetch_array() called
+                return $this->fetch_array();
+                break;
+            case in_array($option, array('row', 'r', 3)):
+                // Log this: Fetch_row() called
+                return $this->fetch_row();
+                break;
+            case in_array($option, array('assoc', 'as', 4)):
+                // Log this: Fetch_assoc() called
+                return $this->fetch_assoc();
+                break;
+            case in_array($option, array('field', 'f', 'fd', 5)):
+                // Log this: Fetch_field() called
+                return $this->fetch_field();
+                break;
+            case in_array($option, array('all', 'mysqli_assoc', 'mysqliassoc', 'massoc', 'mysqli-assoc',
+                    'mysqli_num', 'mysqlinum', 'mnum', 'mysqli-num', 'num',
+                    'mysqli_both', 'mysqliboth', 'mboth', 'mysqli-both', 'both', 6,
+                )):
+                if ($option = "all") {
+                    $option = MYSQLI_BOTH;
+                }
+
+                // Log this: Fetch_all() called
+                return $this->fetch_all($option);
+                break;
+            default:
+                $this->fetch(6);
+        }
+        // Log this: invalid fetch option: $option
+        // Log this: fetch( [ string $type, int $type = MYQLI_BOTH ] ) : mixed
+        return false;
+    }
+
+    /**
+     *
+     * Get result rows as an enumerated array
+     *
+     * @access Public
+     * @return Bool | Array
+     * @param String $SQL -> Database query
+     *
+     **/
+    public function fetch_row($SQL = null)
+    {
+        // Log this: Fetching query results
+        if (!is_null($SQL)) {
+            $this->_sqlQuery = $SQL;
+        }
+
+        if (!$this->_query) {
+            $this->query($this->_sqlQuery);
+        }
+
+        $this->queryResult = @mysqli_fetch_row($this->_query);
+
+        if (!$this->queryResult) {
+            // Log this: Unable to fetch query result: Mysql error $this->errorMsg
+            $this->_sql_error();
+            return false;
+        }
+
+        $this->_num_rows();
+        $this->_num_fields();
+        $this->disconnect();
+        unset($SQL);
+        //Log this: Fetch query results successful
+        return $this->queryResult;
+    }
+
+    /**
+     *
+     * Get column information from a result and return as an object
+     *
+     * @access Public
+     * @return Bool | Object
+     * @param string $SQL -> Database SQL query
+     * @param integer $colNumber -> Column Number
+     *
+     **/
+    public function fetch_field($SQL = null)
+    {
+        // Log this: Fetching query results
+        if (!is_null($SQL)) {
+            $this->_sqlQuery = $SQL;
+        }
+
+        if (!$this->_query) {
+            $this->query($this->_sqlQuery);
+        }
+
+        $this->queryResult = @mysqli_fetch_field($this->_query);
+
+        if (!$this->queryResult) {
+            // Log this: Unable to fetch query result: Mysql error $this->errorMsg
+            $this->_sql_error();
+            return false;
+        }
+
+        $this->_num_rows();
+        $this->_num_fields();
+        $this->disconnect();
+        unset($SQL);
+        //Log this: Fetch query results successful
+        return $this->queryResult;
+    }
+
+    /**
+     *
+     * Get result rows as an associative array, a numeric array, or both
+     *
+     * @access Public
+     * @return Bool | Mixed (Associative or Numeric) Array
+     * @param string $SQL -> Database query
+     * @param string $resultType -> Type of Array (i.e. MYSQLI_ASSOC, MYSQLI_NUM, or MYSQLI_BOTH )
+     *
+     **/
+    public function fetch_all($resultType = MYSQLI_BOTH, $SQL = null)
+    {
+        // Log this: Fetching query results
+        // echo "Here we are ". $this->_resultType . "<br />";
+
+        if (!is_null($SQL)) {
+            $this->_sqlQuery = $SQL;
+        }
+
+        if (!is_null($resultType)) {
+            $this->_resultType = $resultType;
+        }
+
+        if (!$this->_query) {
+            $this->query($this->_sqlQuery);
+        }
+
+        $this->queryResult = @mysqli_fetch_all($this->_query, $this->_resultType);
+        // echo 'Hey12: ';
+        // print_r( $this->queryResult );
+
+        if (!$this->queryResult) {
+            // Log this: Unable to fetch query result: Mysql error $this->errorMsg
+            $this->_sql_error();
+            return false;
+        }
+
+        $this->_num_rows();
+        $this->_num_fields();
+        $this->disconnect();
+        unset($SQL);
+        //Log this: Fetch query results successful
+        return $this->queryResult;
+    }
+
+    /**
+     *
+     * Get result row as an associative array
+     *
+     * @access Public
+     * @return Bool | Array
+     * @param string $SQL -> Database query
+     *
+     **/
+    public function fetch_assoc($SQL = null)
+    {
+        // Log this: Fetching query results
+        if (!is_null($SQL)) {
+            $this->_sqlQuery = $SQL;
+        }
+
+        if (!$this->_query) {
+            $this->query($this->_sqlQuery);
+        }
+
+        $this->queryResult = @mysqli_fetch_assoc($this->_query);
+
+        if (!$this->queryResult) {
+            // Log this: Unable to fetch query result: Mysql error $this->errorMsg
+            $this->_sql_error();
+            return false;
+        }
+
+        $this->_num_rows();
+        $this->_num_fields();
+        $this->disconnect();
+        unset($SQL);
+        //Log this: Fetch query results successful
+        return $this->queryResult;
+    }
+
+    /**
+     *
+     * Get result rows as an object
+     *
+     * @access Public
+     * @return Bool | Object
+     * @param string $SQL -> Database query
+     *
+     **/
+    public function fetch_object($SQL = null)
+    {
+        // Log this: Fetching query results
+        if (!is_null($SQL)) {
+            $this->_sqlQuery = $SQL;
+        }
+
+        if (!$this->_query) {
+            $this->query($this->_sqlQuery);
+            // var_dump($this->_sqlQuery);
+        }
+
+        $this->queryResult = @mysqli_fetch_object($this->_query);
+
+        if (!$this->queryResult) {
+            // Log this: Unable to fetch query result: Mysql error $this->errorMsg
+            $this->_sql_error();
+            return false;
+        }
+
+        $this->_num_rows();
+        $this->_num_fields();
+        $this->disconnect();
+        unset($SQL);
+        //Log this: Fetch query results successful
+        return $this->queryResult;
+    }
+
+    /**
+     *
+     * Get result rows as an associative, a numeric array, or both
+     *
+     * @access Public
+     * @return Bool | Array
+     * @param string $SQL -> Database query
+     * @param string $resultType -> Type of Array (i.e. MYSQLI_ASSOC, MYSQLI_NUM, or MYSQLI_BOTH )
+     *
+     **/
+    public function fetch_array($SQL = null, $resultType = 'MYSQLI_BOTH')
+    {
+        // Log this: Fetching query results
+        if (!is_null($SQL)) {
+            $this->_sqlQuery = $SQL;
+        }
+
+        if (!is_null($resultType)) {
+            $this->_resultType = $resultType;
+        }
+
+        if (!$this->_query) {
+            $this->query($this->_sqlQuery);
+        }
+
+        // $this->queryResult = @mysqli_fetch_array( $this->_query, $this->_resultType );
+        while ($row = @mysqli_fetch_array($this->_query, $this->_resultType)) {
+            $this->queryResult[] = $row;
+        }
+
+        if (!$this->queryResult) {
+            // Log this: Unable to fetch query result: Mysql error $this->errorMsg
+            $this->_sql_error();
+            return false;
+        }
+
+        $this->_num_rows();
+        $this->_num_fields();
+        $this->disconnect();
+        //Log this: Fetch query results successful
+        return $this->queryResult;
+    }
+
+    /**
+     *
+     * Get number of rows in query result
+     *
+     * @access Private
+     * @return Bool | Integer
+     * @param resource $queryResult -> Query result
+     *
+     **/
+    private function _num_rows($queryResult = null)
+    {
+        // Log here: num_rows() called
+        if (!is_null($queryResult)) {
+            $this->_query = $queryResult;
+        }
+
+        $this->numRows = (!empty($this->_query) && $this->_query !== true) ? @mysqli_num_rows($this->_query) : false;
+
+        if (!$this->numRows) {
+            // Log this: Unable to get the number of rows in query result: Mysql error $this->errorMsg
+            $this->_sql_error();
+            return false;
+        }
+        //Log this: Got number of rows in query result successful
+        return true;
+    }
+
+    /**
+     *
+     * Return number of fields in query result
+     *
+     * @access Private
+     * @return Bool | Integer
+     * @param object $queryResult -> Query results
+     *
+     **/
+    private function _num_fields($queryResult = null)
+    {
+        // Log here: num_fields() called
+        if (!is_null($queryResult)) {
+            $this->_query = $queryResult;
+        }
+
+        $this->numFields = (!empty($this->_query) && $this->_query !== true) ? @mysqli_num_fields($this->_query) : false;
+        // $this->numFields = @mysqli_num_fields($this->_query);
+
+        if (!$this->numFields) {
+            // Log this: Unable to get the number of fields in query result: Mysql error $this->errorMsg
+            $this->_sql_error();
+            return false;
+        }
+        //Log this: Got number of fields in query result successful
+        return true;
+    }
+
+    /**
+     *
+     * Return number of rows affected by the last query (INSERT, UPDATE, REPLACE or DELETE)
+     *
+     * @access Public
+     * @return Bool | Integer
+     * @param resource $conn -> The link indentifier
+     *
+     **/
+    public function affected_rows($conn = null)
+    {
+        // Log here: affected_rows() called
+        if (!is_null($conn)) {
+            $this->_conn = $conn;
+        }
+
+        if (!$this->is_connected()) {
+            $this->_connect();
+        }
+
+        $this->affectedRows = @mysqli_affected_rows($this->_conn);
+
+        $this->_free_memory();
+
+        if ($this->affectedRows == 1) {
+            //Log this: Got number of affected rows successfully
+            return $this->affectedRows;
+        }
+        // Log this: Unable to get the number of affected rows: Mysql error $this->errorMsg
+        $this->_sql_error();
+        return false;
+    }
+
+    /**
+     *
+     * Return the ID generated in the last query
+     *
+     * @access Public
+     * @return Bool | Integer | String
+     *
+     **/
+    public function insert_id()
+    {
+        // Log here: insert_id() called
+        if (!$this->is_connected()) {
+            $this->_connect();
+        }
+
+        $this->insertID = @mysqli_insert_id($this->_conn);
+
+        if (!$this->insertID) {
+            // Log this: Unable to get the number of rows in query result: Mysql error $this->errorMsg
+            $this->_sql_error();
+            return false;
+        }
+        //Log this: ID auto generated for successfully
+        return $this->insertID;
+    }
+
+    /**
+     *
+     * Sets the default character set
+     *
+     * @access Public
+     * @return Bool
+     * @param String $charset -> Character set name (optional)
+     * @param String $collate -> Character Collation name (optional)
+     *
+     **/
+    public function set_charset($charset = null, $collate = null)
+    {
+        // Log here: set_charset() called
+        if (!is_null($charset)) {
+            $this->_DBCharset = $charset;
+        }
+
+        if (!is_null($collate)) {
+            $this->_DBCollate = $collate;
+        }
+
+        $this->_query = (function_exists('mysqli_set_charset')) ? @mysqli_set_charset($this->_conn, $this->_DBCharset) : $this->query('SET CHARACTER SET ' . $this->_DBCharset, $this->_conn);
+
+        if (!is_null($this->_DBCollate) && $this->_query) {
+            if (!$this->set_collate()) {
+                return false;
+            }
+
+        }
+
+        if (!$this->_query) {
+            // Log this: Unable update the database default character set: Mysql error $this->errorMsg
+            $this->_sql_error();
+            return false;
+        }
+        //Log this: Database character set updated successfully
+        return true;
+    }
+
+    /**
+     *
+     * Returns a character set object
+     *
+     * @access Public
+     * @return Bool | Object
+     * @param String $charset -> Character set name (optional)
+     *
+     **/
+    public function get_charset($charset = null)
+    {
+        // Log here: get_charset() called
+        if (!is_null($charset)) {
+            $this->_DBCharset = $charset;
+        }
+
+        $this->_query = (function_exists('mysqli_get_charset')) ? @mysqli_get_charset($this->_conn) : false;
+
+        if (!$this->_query) {
+            // Log this: Unable update to get database character set object: Mysql error $this->errorMsg
+            $this->_sql_error();
+            return false;
+        }
+        //Log this: Database character set was retrived successfully
+        return $this->_query;
+    }
+
+    /**
+     *
+     * Set the default character collation
+     *
+     * @access Public
+     * @return Bool
+     * @param String $collate -> Character Collation name (optional)
+     *
+     **/
+    public function set_collate($collate = null)
+    {
+        // Log here: set_collate() called
+        if (!is_null($collate)) {
+            $this->_DBCollate = $collate;
+        }
+
+        $this->_query = $this->query('SET COLLATION_CONNECTION = ' . $this->_DBCollate, $this->_conn);
+
+        if (!$this->_query) {
+            // Log this: Unable to update database collation: Mysql error $this->errorMsg
+            $this->_sql_error();
+            return false;
+        }
+        //Log this: database collation was update successfully
+        return true;
+    }
+
+    /**
+     *
+     * Escapes special characters in a string for use in an SQL statement
+     *
+     * @access Public
+     * @return String | Bool
+     * @param String | Array $input -> The string that is to be escaped
+     * @author http://css-tricks.com/snippets/php/sanitize-database-inputs/
+     *
+     **/
+    public function escape($input)
+    {
+        // Log here: escape() called
+        if (!$this->is_connected()) {
+            $this->_connect();
+        }
+
+        if (is_null($input)) {
+            return false;
+        }
+
+        if (is_array($input)) {
+
+            foreach ($input as $key => $value) {
+                $output[$key] = $this->escape($value);
+            }
+
+        } else {
+
+            /** Remove whitespace and related characters
+             *  from the beginning and end of the string
+             **/
+            $input = trim($input);
+
+            if (function_exists("get_magic_quotes_gpc")) {
+                $input = stripslashes($input);
+            }
+
+            $input = $this->clean_input($input);
+
+            $output = (function_exists("mysqli_real_escape_string")) ? @mysqli_real_escape_string($this->_conn, $input) : addslashes($input);
+
+            //Log this: Special characters was escaped successfully
+            return $output;
+        }
+    }
+
+    /**
+     *
+     * Replace specified special characters in a string
+     *
+     * @access Public
+     * @return String | Bool
+     * @param String | Array $var -> The string that is to be escaped
+     * @param String | Array $unwanted -> The strings that needs to be removed
+     * @author http://css-tricks.com
+     *
+     **/
+    public function clean_input($input, $unwanted = null)
+    {
+        // Log this: clean_input() called;
+
+        if (!isset($unwanted) || is_null($unwanted)) {
+
+            $unwanted = array(
+                '@<script[^>]*?>.*?</script>@si', // Strip out javascript
+'@<[\ /\!]*?[^<>]*?>@si', // Strip out HTML tags
+    '@<style[^>]*?>.*?</style>@siU', // Strip style tags properly
+        '@
+        <![\s\S]*?--[ \t\n\r]*>@', // Strip multi-line comments
+            );
+        }
+
+        $output = preg_replace($unwanted, '', $input);
+
+        //Log this: Successfully replaced all unwanted characters
+        return $output;
+    }
+
+    /**
+     *
+     * Get error messages
+     *
+     * @access private
+     * @return Bool
+     *
+     **/
+    private function _sql_error()
+    {
+        if ($this->_DBErrorNo = @mysqli_errno($this->_conn)) {
+            $this->DBErrorMsg = "[" . $this->_DBErrorNo . "] " . @mysqli_error($this->_conn);
+            $this->disconnect();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * REMOVE and place in logger class
+     * Log all class actions
+     *
+     * @access public
+     * @param String
+     * @return Bool | Integer
+     *
+     **/
+    private function _log_parser($string, $type = 'error')
+    {
+        if (is_null($type)) {
+            $type = 'log';
+        }
+
+        $dateTime = date('d/m/y h:i:s e');
+        $logString = '';
+        switch (strtolower($type)) {
+            case 'error':
+            case 'query':
+                $logString = ucwords($type) . ': <em>' . $string . '</em>';
+                break;
+            case 'log':
+                $logString = $string;
+                break;
+            default:
+                $logString = $string;
+                break;
+        }
+        return '[' . $dateTime . '] "' . $logString . '"<br />';
+
+    }
+
+}

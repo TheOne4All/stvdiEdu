@@ -1,0 +1,172 @@
+<?php
+
+class Students extends Processor
+{
+
+    public function __construct()
+    {
+        $this->user = new FynxUser;
+        $this->user->is_idle() === true ? $this->with('alert', 1)->redirect('auth/signout/' . $_SESSION['user_session']['org_id']) : null;
+        $this->user->is_logout() === true ? $this->with('alert', 3)->redirect('auth/signout/' . $_SESSION['user_session']['org_id']) : null;
+        $this->user->is_login() !== true && $this->user->is_idle() !== true ? $this->with('alert', 2)->redirect('auth/signout/' . $_SESSION['user_session']['org_id']) : null;
+    }
+
+    public function index($currentPage = 1, $entry = null)
+    {
+        if (!empty($entry)) {$_SESSION['tenant']['default_row_per_page'] = (int) $entry;}
+        $filter_array = 'admission_no, firstname, lastname, middlename, address, email, phone, gender, category_id, user_id, rfid_code, created_at';
+        if (isset($_POST) && !empty($_POST)) {
+            extract($_POST);
+            $_SESSION['search_filter'] = [
+                'search_table' => $search_table,
+            ];
+        }
+        $allStudents = $this->get_record('fx_person', $filter_array);
+        !isset($_SESSION['search_filter']['search_table']) || $_SESSION['search_filter']['search_table'] == null ? $allStudents->search('') : $allStudents->search($_SESSION['search_filter']['search_table']);
+        $allStudents = $allStudents->and_where('org_id', $_SESSION['user_session']['org_id'])->order_by('created_at')->limit($_SESSION['tenant']['default_row_per_page'], ($currentPage - 1) * $_SESSION['tenant']['default_row_per_page'])->go();
+
+        $allStudentsCount = $this->get_record('fx_person', $filter_array);
+        !isset($_SESSION['search_filter']['search_table']) || $_SESSION['search_filter']['search_table'] == null ? $allStudentsCount->search('') : $allStudentsCount->search($_SESSION['search_filter']['search_table']);
+        $allStudentsCount = $allStudentsCount->and_where('org_id', $_SESSION['user_session']['org_id'])->order_by('created_at')->go();
+
+        $this->with('currentPage', $currentPage)->with('allStudents', $allStudents)->with('allStudentsCount', count($allStudentsCount))->with('search_filter', $_SESSION['search_filter'])->show('resources/students/index');
+    }
+
+    public function add()
+    {
+        // Package limit Verification
+        $allStudents = $this->get_record('fx_person', 'created_at')->where('org_id', $_SESSION['user_session']['org_id'])->go();
+        // if (count($allStudents) >= $_SESSION['package']['examinees']) {$this->with('danger', 'Package Limit Exceeded!')->redirect('students/index');}
+
+        extract($_POST);
+        if (isset($_FILES)) {
+            foreach ($_FILES as $key => $value) {
+                if (!empty($value['name'])) {
+                    $this->filesystem->allow_overwriting();
+                    $this->filesystem->set_input($key);
+                    $this->filesystem->set_destination_directory(FYNX_PUBLIC['media'] . 'user-profile/');
+                    // $this->filesystem->set_filename($user_id . '.%s');
+                    $this->filesystem->set_auto_filename('.%s');
+                    $this->filesystem->set_upload_function("copy");
+                    $this->filesystem->save();
+                    $img = $this->filesystem->get_info()->filename;
+                    // Callback in before upload
+                    // $this->filesystem->set_callback_input(function ($data) {
+                    //     echo "<h3>Start!</h3>";
+                    // });
+
+                    // Callback in after upload
+                    // $this->filesystem->set_callback_output(function ($data) {
+                    //     $img = $data->filename;
+                    // echo "<h3>End!</h3>";
+                    // if ($data->status === true) {
+                    //     echo "<p>The " . $data->filename . " file has been uploaded</p>";
+                    // } else {
+                    //     echo "<p>The " . $data->filename . " file could not be uploaded to the server</p>";
+                    // }
+                    // });
+                }
+            }
+        }
+        $user_array = [
+            'user_id' => $this->guidv4(),
+            'user_pass' => hash("sha512", md5("Password@1")),
+            'user_phone' => $phone,
+            'user_role' => 3,
+            'user_name' => strtolower($firstname . '.' . $lastname),
+            'user_email' => $email,
+            'org_id' => $_SESSION['user_session']['org_id'],
+        ];
+        $examinee_array = [
+            'user_id' => $user_array['user_id'],
+            'firstname' => $firstname,
+            'lastname' => $lastname,
+            'middlename' => $middlename,
+            'category_id' => $category_id,
+            'gender' => $gender,
+            'address' => $current_address,
+            'email' => $email,
+            'phone' => $phone,
+            'admission_no' => $admission_no,
+            'img' => isset($img) ? $img : null,
+            'org_id' => $_SESSION['user_session']['org_id'],
+        ];
+
+        if (is_null($examinee_array['img'])) {unset($examinee_array['img']);}
+        $user_insert = $this->add_record('fx_user', $user_array)->go();
+        $examinee_insert = $this->add_record('fx_person', $examinee_array)->go();
+        $result = array($user_insert, $examinee_insert);
+        switch ($result) {
+            case array(false, true):
+                $this->delete_record('fx_person', ['user_id' => $user_array['user_id']])->and_where('org_id', $_SESSION['user_session']['org_id'])->go();
+                $this->with('danger', 'Add Examinee was Unsuccessful!')->redirect('students/index');
+                break;
+            case array(true, false):
+                $this->delete_record('fx_user', ['user_id' => $user_array['user_id']])->and_where('org_id', $_SESSION['user_session']['org_id'])->go();
+                $this->with('danger', 'Add Examinee was Unsuccessful!')->redirect('students/index');
+                break;
+            case array(false, false):
+                $this->with('danger', 'Add Examinee was Unsuccessful!')->redirect('students/index');
+                break;
+            default:
+
+                // send credentials to student's email address
+
+                // end send email
+
+                isset($img) ? $_SESSION['user_session']['img'] = $img : null;
+                $_SESSION['log']['note'] = 'Examinee Added Successfully!';
+                $this->add_record('fx_log', $_SESSION['log'])->go();
+                $this->with('success', $mail_status . $_SESSION['log']['note'])->redirect('students/index');
+                break;
+        }
+    }
+
+    public function update()
+    {
+        extract($_POST);
+        if (isset($_FILES)) {
+            foreach ($_FILES as $key => $value) {
+                if (!empty($value['name'])) {
+                    $this->filesystem->allow_overwriting();
+                    $this->filesystem->set_input($key);
+                    $this->filesystem->set_destination_directory(FYNX_PUBLIC['media'] . 'user-profile/');
+                    $this->filesystem->set_auto_filename('.%s');
+                    $this->filesystem->set_upload_function("copy");
+                    $this->filesystem->save();
+                    $_POST['img'] = $this->filesystem->get_info()->filename;
+                }
+            }
+        }
+        // highlight_string(print_r($this->filesystem->get_info(), true));
+        $result = $this->update_record('fx_person', $_POST)->where('user_id', $user_id)->and_where('org_id', $_SESSION['user_session']['org_id'])->go();
+        switch ($result) {
+            case false:
+                $this->with('danger', 'Update Examinee was Unsuccessful!')->redirect('students/index');
+                break;
+            default:
+                isset($_POST['img']) ? $_SESSION['user_session']['img'] = $_POST['img'] : null;
+                $_SESSION['log']['note'] = 'Examinee Updated Successfully!';
+                $this->add_record('fx_log', $_SESSION['log'])->go();
+                $this->with('success', $_SESSION['log']['note'])->redirect('students/index');
+                break;
+        }
+    }
+
+    public function delete()
+    {
+        extract($_POST);
+        $pattern = "/[\[\]\"]/s";
+        $pattern1 = "/[\"]/s";
+        if (isset($fynx_selected_id)) {
+            $unedited_user_id_json = json_encode(explode(',', $fynx_selected_id));
+            $edited_user_id_json = preg_replace($pattern, '', preg_replace($pattern1, "'", $unedited_user_id_json));
+            $this->delete_record('fx_user')->in_where('user_id', $edited_user_id_json)->and_where('org_id', $_SESSION['user_session']['org_id'])->go();
+        } else {
+            $this->delete_record('fx_user', $_POST)->and_where('org_id', $_SESSION['user_session']['org_id'])->go();
+        }
+        $_SESSION['log']['note'] = 'Examinee(s) Deleted Successfully!';
+        // $this->add_record('fx_log', $_SESSION['log'])->go();
+        $this->with('success', $_SESSION['log']['note'])->redirect('students/index');
+    }
+}

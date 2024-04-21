@@ -1,0 +1,1600 @@
+<?php
+
+/**
+ *
+ * This database class has a clean and common methods that works with various
+ * types of fynx database classes (such as: msSQL, mySQL, mySQLi and postgres) and PDO. It
+ * has cache system integrated along side making it very effective and powerful
+ * database class..
+ *
+ * @version: 3.12.19
+ * @package Fynix Framework
+ * @author: Jencube Team
+ * @license: http://opensource.org/licenses/gpl-license.php
+ * GNU General Public License (GPL)
+ * @copyright: Copyright (c) 2013 - 2020 Jencube
+ * @twitter: @deusex0 & @One_Oracle
+ * @filesource: system/database/database.lib
+ * @classname: FynxDatabase
+ *
+ **/
+
+class FynxDatabase
+{
+
+    /**
+     *
+     * Database Type
+     *
+     * @access protected
+     * @var string
+     *
+     **/
+    //protected $ConnParameter;
+
+    /**
+     *
+     * Database Host
+     *
+     * @access protected
+     * @var string
+     *
+     **/
+    //protected $dbHost;
+
+    /**
+     *
+     * Database Name
+     *
+     * @access protected
+     * @var string
+     *
+     **/
+    //protected $dbName;
+
+    /**
+     *
+     * Database User
+     *
+     * @access protected
+     * @var string
+     *
+     **/
+    //protected $dbUsername;
+
+    /**
+     *
+     * Database Password
+     *
+     * @access protected
+     * @var string
+     *
+     **/
+    //protected $dbPassword;
+
+    /**
+     *
+     * Database Port
+     *
+     * @access protected
+     * @var integer
+     *
+     **/
+    //protected $dbPort = 3306;
+
+    /**
+     *
+     * To make a remote connection
+     *
+     * @access private
+     * @var bool
+     *
+     **/
+    // private $remote = FALSE;
+
+    /**
+     *
+     * Database table columns charset
+     *
+     * @access public
+     * @var string
+     *
+     **/
+    //var $dbCharset = 'utf8';
+
+    /**
+     *
+     * Database table columns collate
+     *
+     * @access public
+     * @var string
+     *
+     **/
+    //var $dbCollate = 'utf8_general_ci';
+
+    /**
+     *
+     * Database Type
+     *
+     * @access private
+     * @var string
+     *
+     **/
+    private $_dbClassName = 'MySQLiDB';
+
+    /**
+     *
+     * Database Type
+     *
+     * @access private
+     * @var string
+     *
+     **/
+    private $_dbType;
+
+    /**
+     *
+     * To show database errors
+     *
+     * @access private
+     * @var bool
+     *
+     **/
+    private $showError = false;
+
+    /**
+     *
+     * SQL query
+     *
+     * @access private
+     * @var string
+     *
+     **/
+    private $sqlQuery = null;
+
+    /**
+     *
+     * Query statement
+     *
+     * @access protected
+     * @var mixed
+     *
+     **/
+    protected $query = 0;
+
+    /**
+     *
+     * Query fetch data
+     *
+     * @access protected
+     * @var mixed
+     *
+     **/
+    protected $queryResult = 0;
+
+    /**
+     *
+     * Query time
+     *
+     * @access public
+     * @var integer
+     *
+     **/
+    public $queryTime = 0;
+
+    /**
+     *
+     * Query count
+     *
+     * @access private
+     * @var integer
+     *
+     **/
+    public $numQueries = 0;
+
+    /**
+     *
+     * Previous query row count
+     *
+     * @access public
+     * @var integer
+     *
+     **/
+    public $numRows = 0;
+
+    /**
+     *
+     * Number of column in query result
+     *
+     * @access public
+     * @var integer
+     *
+     **/
+    public $numFields = 0;
+
+    /**
+     *
+     * Count of affected rows by previous query
+     *
+     * @access public
+     * @var integer
+     *
+     **/
+    public $affectedRows = 0;
+
+    /**
+     *
+     * Get row data affected by delete()
+     *
+     * @access public
+     * @var object
+     *
+     **/
+    public $affectedData = null;
+
+    /**
+     *
+     * AUTO_INCREMENT generated ID by the previous query
+     *
+     * @access public
+     * @var integer
+     *
+     **/
+    public $insertID;
+
+    /**
+     *
+     * Database connection link
+     *
+     * @access protected
+     * @var integer
+     *
+     **/
+    protected $connection;
+
+    /**
+     *
+     * Use PHP Data Objects
+     *
+     * @access private
+     * @var bool
+     *
+     **/
+    //private $PDO = FALSE;
+
+    /**
+     *
+     * The last error during query
+     *
+     * @access protected
+     * @var array
+     *
+     **/
+    protected $errorMsg = array();
+
+    /**
+     *
+     * To suppress/show errors
+     *
+     * @access protected
+     * @var bool
+     *
+     **/
+    protected $suppressErrors = false;
+
+    /**
+     *
+     * Database activities log
+     *
+     * @access public
+     * @var string
+     *
+     **/
+    public $logData = '';
+
+    /**
+     *
+     * Log data directory
+     *
+     * @access private
+     * @var string
+     *
+     **/
+    private $logDir;
+
+    /**
+     *
+     * Cache results
+     *
+     * @access private
+     * @var bool
+     *
+     **/
+    private $cache = true;
+
+    /**
+     *
+     * Cache encode
+     *
+     * @access private
+     * @var string
+     *
+     **/
+    private $cacheEncode = 'jsone';
+
+    /**
+     *
+     * Cache decode
+     *
+     * @access private
+     * @var string
+     *
+     **/
+    private $cacheDecode = 'jsond';
+
+    /**
+     *
+     * Cache filename & directory
+     *
+     * @access private
+     * @var string
+     *
+     **/
+    private $cacheFile;
+
+    /**
+     *
+     * Cache file directory
+     *
+     * @access private
+     * @var string
+     *
+     **/
+    private $cacheDir;
+
+    /**
+     *
+     * Cache name
+     *
+     * @access public
+     * @var string
+     *
+     **/
+    public $cacheName = null;
+
+    /**
+     *
+     * Cache Unique ID
+     *
+     * @access private
+     * @var string
+     *
+     **/
+    private $cacheID = null;
+
+    /**
+     *
+     * Cache age, the period of time cache is allow
+     * to exists. Default is 5min
+     *
+     * @access public
+     * @var integer
+     *
+     **/
+    public $cacheAge = 300;
+
+    /**
+     *
+     * Cache file last modified time.
+     *
+     * @access private
+     * @var integer
+     *
+     **/
+    private $cacheMod;
+
+    /**
+     *
+     * Activate/Deactivate debugging
+     *
+     * @access private
+     * @var bool
+     *
+     **/
+    private $debug = true;
+
+    /**
+     *
+     * debug details
+     *
+     * @access public
+     * @var array
+     *
+     **/
+    public $querydebug = array();
+
+    /**
+     *
+     * debugging query counter
+     *
+     * @access public
+     * @var integer
+     *
+     **/
+    public $queryCount;
+
+    /**
+     *
+     * debug start time
+     *
+     * @access public
+     * @var integer
+     *
+     **/
+    public $startTime = 0;
+
+    /**
+     *
+     * Log every action
+     *
+     * @access public
+     * @var string
+     *
+     **/
+    private $_dbEngineDir = 'engines/';
+
+    /**
+     *
+     * Log every action
+     *
+     * @access public
+     * @var string
+     *
+     **/
+    private $_sysConfig;
+
+    /**
+     *
+     * Log every action
+     *
+     * @access public
+     * @var string
+     *
+     **/
+    private $_dbFilename = 'mysqliDB';
+
+    /**
+     *
+     * Log every action
+     *
+     * @access public
+     * @var string
+     *
+     **/
+    public $dbFileExt = '.lib';
+
+    /**
+     *
+     * Config file path
+     *
+     * @access private
+     * @var string
+     *
+     **/
+    private $_sysConfDir = '../../configs/sys.cfg';
+
+    /**
+     *
+     * Log every action
+     *
+     * @access public
+     * @var string
+     *
+     **/
+    public $fileDirectory = null;
+
+    /**
+     *
+     * Log every action
+     *
+     * @access public
+     * @var string
+     *
+     **/
+    private $config;
+
+    /**
+     *
+     * Class constructor initialization to set the class
+     * properties and connection to the database
+     *
+     * @access public
+     * @param array
+     *
+     **/
+
+    public function __construct($config = array())
+    {
+
+        $this->_sysConfig = (!defined('FYNX_SYSCONFIG')) ? require_once FYNX_SYSTEM['configs'] . 'sys.cfg' : FYNX_SYSCONFIG;
+        // var_dump($this->_sysConfig);
+        $dbConfig = $this->_sysConfig['connections'][$this->_sysConfig['default_db']];
+        // print_r($dbConfig);
+
+        $this->_dbEngineDir = (isset($dbConfig['db_engine_directory'])) ? $dbConfig['db_engine_directory'] : $this->_dbEngineDir;
+        $this->_dbFilename = (isset($dbConfig['db_filename'])) ? $dbConfig['db_filename'] : $this->_dbFilename;
+        $this->dbFileExt = (isset($dbConfig['db_file_extension'])) ? $dbConfig['db_file_extension'] : $this->dbFileExt;
+        $this->fileDirectory = (isset($dbConfig['db_file_directory'])) ? $dbConfig['db_file_directory'] : $this->_set_directory();
+        $this->_dbClassName = (isset($dbConfig['db_class_name'])) ? $dbConfig['db_class_name'] : $this->_dbClassName;
+
+        // var_dump(file_exists($this->fileDirectory));
+        require_once $this->fileDirectory;
+        $this->db = new $this->_dbClassName($dbConfig);
+        // $this->db = FYNX_APP['installation'] !== false ? new $this->_dbClassName($dbConfig) : null;
+
+    }
+
+    public function display_result()
+    {
+        echo $this->fileDirectory;
+    }
+
+    /**
+     *
+     * Change/Select default database for the connection
+     *
+     * @access Public
+     * @return Bool
+     * @param String $dbName -> The database name
+     *
+     **/
+    public function select_db($dbName = null)
+    {
+        return $this->db->select_db($dbName);
+        // var_dump( $this->db->DBErrorMsg );
+        // var_dump( $return );
+    }
+
+    /**
+     *
+     * Perform a database query
+     *
+     * @access Public
+     * @return Bool | Integer | Object
+     * @param string $SQL -> Database query
+     *
+     **/
+    public function query($SQL = null, $method = null)
+    {
+        return $this->db->query($SQL, $method);
+    }
+
+    /**
+     *
+     * Set database query string
+     *
+     * @access Public
+     * @param string $SQL -> Database SQL query
+     *
+     **/
+    public function set_query_string($SQL)
+    {
+        $this->db->set_query_String($SQL);
+    }
+
+    /**
+     *
+     * Return query string
+     *
+     * @access Public
+     * @return Bool | String
+     *
+     **/
+    public function get_query_string()
+    {
+        return $this->db->get_query_String();
+    }
+
+    /**
+     *
+     * Set fetch result type
+     *
+     * @access Public
+     * @param string $resultType -> Type of Array (i.e. MYSQLI_ASSOC, MYSQLI_NUM, or MYSQLI_BOTH )
+     *
+     **/
+    public function set_fetch_result_type($resultType)
+    {
+        $this->db->_resultType = $resultType;
+    }
+
+    /**
+     *
+     * Sets the default scharacter set
+     *
+     * @access Public
+     * @return Bool
+     * @param String $charset -> Character set name (optional)
+     * @param String $collate -> Character Collation name (optional)
+     *
+     **/
+    public function set_charset($charset = null, $collate = null)
+    {
+        return $this->db->set_charset($charset, $collate);
+    }
+
+    /**
+     *
+     * Returns a character set object
+     *
+     * @access Public
+     * @return Bool | Object
+     * @param String $charset -> Character set name (optional)
+     *
+     **/
+    public function get_charset($charset = null)
+    {
+        return $this->db->get_charset($charset);
+    }
+
+    /**
+     *
+     * Return random result
+     * Contributed by akinas.com => mysql_random_row
+     *
+     * @access Public
+     * @return String
+     * @param Array $data -> Query details
+     * @usage rand_query(
+     *           array(
+     *                 tablename => 'NOT NULL',
+     *                 fieldid => 'id',
+     *                 fields => '*',
+     *                 limit => '0, 30',
+     *                 where => '`name` = 'james' AND `privilege` = 'user'',
+     *                 type => '0'
+     *           )
+     * )
+     *
+     **/
+    private function sql_bind($SQL = array())
+    {
+        if (!is_array($SQL)) {
+            // error message
+            return false;
+        }
+
+        $syntax = '';
+
+        if (!isset($SQL['action']) || empty($SQL['action'])) {
+            // error message
+            return false;
+        }
+
+        switch (strtoupper($SQL['action'])) {
+            case "SELECT":
+                $selectFields = isset($SQL['column_name']) ? $SQL['column_name'] : "*";
+                $syntax = "SELECT " . $selectFields;
+                $syntax .= " FROM " . $SQL['t'];
+                if (isset($SQL['where']) && empty($SQL['where'])) {
+                    $syntax .= " WHERE ";
+                }
+                $syntax .= "";
+            case "CREATE":
+
+            case "UPDATE":
+            case "DELETE":
+            case "INSERT":
+            case "DROP":
+            case "ALTER":
+
+        }
+
+    }
+
+    /**
+     *
+     * Insert new records into a database table
+     *
+     * @access public
+     * @return bool|Integer
+     *
+     **/
+    public function insert($tableName, $insertData, $attribute = array())
+    {
+        //$this->logData .= $this->set_log_string( "insert() called" );
+
+        if (!$this->db->is_connected()) {
+
+            $this->logData .= $this->set_log_string("No database connection made.", "error");
+            $this->errorMsg[] = "No database connection made.";
+            return false;
+
+        }
+
+        $where = '';
+
+        // if ( ! $this->PDO ) {
+
+        $this->sqlQuery = "INSERT INTO `" . $this->escape($this->db->clean_input($attribute['tbl_prefix'])) . $tableName . "` ";
+
+        if (!isset($attribute['group']) || $attribute['group'] == true) {
+            echo 'heyGroup';
+            $tableField = '';
+            $fieldValue = array();
+            foreach ($insertData as $field => $value) {
+                $tableField .= ', `' . $this->escape($this->db->clean_input($attribute['field_prefix'])) . $this->escape($field) . '`';
+                $fieldValue[] = $this->escape($value);
+            }
+
+            $this->sqlQuery .= '( ' . trim(substr($tableField, 2)) . ' ) ';
+            $this->sqlQuery .= 'VALUES ( \'' . implode("', '", $fieldValue) . "' )";
+        } else {
+            echo 'heySingle';
+            $data = array();
+            foreach ($insertData as $column => $value) {
+                $data[] = "`" . $this->escape($this->db->clean_input($attribute['field_prefix'])) . $this->escape($this->db->clean_input($column)) . "` = '" . $this->escape($this->db->clean_input($value)) . "'";
+            }
+            $this->sqlQuery .= implode(', ', $data);
+
+        }
+        print_r($this->sqlQuery);
+        //$this->logData .= $this->set_log_string( $this->sqlQuery, "query" );
+        if (!$this->query($this->sqlQuery)) {
+            $this->errorMsg[] = $this->db->DBErrorMsg;
+            echo 'hey';
+            return false;
+        }
+        $this->affected_rows();
+
+        // } else {
+
+        // if ( !is_array( $insertData ) && !is_null( $insertData ) ) {
+        //   $this->logData .= $this->set_log_string( "PDO identifier must be an array.", "error" );
+        //   $this->errorMsg[] = "PDO identifier must be an array.";
+        //   return FALSE;
+        // }
+
+        // $this->sqlQuery = "INSERT INTO " . $tableName;
+        // $this->sqlQuery .= ' ( ' . implode( ', ', array_keys( $insertData ) ) . ' )';
+        // $this->sqlQuery .= ' VALUES ( :' . implode( ', :', array_keys( $insertData ) ) . ' )';
+
+        // $this->logData .= $this->set_log_string( $this->sqlQuery, "query" );
+
+        // $stmt = $this->db->prepare( $this->sqlQuery );
+
+        // foreach ( $insertData as $field => $value ) {
+        //   $bindField = ':' . $field;
+        //   $stmt->bindParam( $bindField, $insertData[$field] );
+        // }
+
+        // if ( ! $stmt->execute() ) {
+        //   $error = $this->sql_error( $stmt );
+        //   $this->errorMsg[] = $error;
+        //   $this->logData .= $this->set_log_string( $error, "error" );
+        //   return FALSE;
+        // }
+        // $this->affected_rows( $stmt );
+        // $this->db->lastInsertId( 'student_id');
+
+        // }
+        unset($tableName, $insertData, $attribute);
+        return true;
+
+    }
+
+    /**
+     *
+     * Update record in a database table
+     *
+     * @access public
+     * @return bool|Integer
+     * @param string $tableName -> Database table name
+     * @param array $updateData -> fieldname => fieldvalue
+     * @param string|array $identifier -> Query identifier, array for PDO
+     *
+     **/
+    public function update($tableName, $updateData, $identifier = null)
+    {
+        $this->logData .= $this->set_log_string('update() called.');
+
+        if (!$this->db->is_connected()) {
+
+            $this->logData .= $this->set_log_string('No database connection made.', 'error');
+            $this->errorMsg[] = "No database connection made.";
+            return false;
+
+        }
+
+        if (!is_array($updateData) && !is_null($updateData)) {
+            $this->logData .= $this->set_log_string('Update data must be an array.', 'error');
+            $this->errorMsg[] = "Update data must be an array.";
+            return false;
+        }
+
+        if (is_null($identifier)) {
+            $this->logData .= $this->set_log_string('Specify an identifier.', 'error');
+            $this->errorMsg[] = "Specify an identifier.";
+            return false;
+        }
+
+        $where = '';
+
+        if (!$this->PDO) {
+
+            if (is_array($identifier)) {
+                // $identifiers = array();
+                foreach ($identifier as $field => $value) {
+                    $identifiers = " AND `" . $this->escape($this->db->clean_input($field)) . "` = '" . $this->escape($this->db->clean_input($value)) . "'";
+                }
+
+                $where = "WHERE " . substr($identifiers, 4);
+
+            } else {
+                if (substr(strtoupper(trim($identifier)), 0, 5) != 'WHERE') {
+                    $where = " WHERE " . $identifier;
+                } else {
+                    $where = " " . trim($identifier);
+                }
+            }
+
+            $this->sqlQuery = "UPDATE `" . $tableName . "` SET ";
+
+            $data = array();
+            foreach ($updateData as $column => $value) {
+                $data[] = "`" . $this->escape($this->db->clean_input($column)) . "` = '" . $this->escape($this->db->clean_input($value)) . "'";
+            }
+            $this->sqlQuery .= implode(',', $data);
+
+            $this->sqlQuery .= $where;
+
+            $this->logData .= $this->set_log_string($this->sqlQuery, 'query');
+            if ($this->query($this->sqlQuery)) {
+                return true;
+            }
+            $this->affected_rows();
+
+        } else {
+
+            if (!is_array($identifier) && !is_null($identifier)) {
+                $this->logData .= $this->set_log_string('PDO identifier must be an array.', 'error');
+                $this->errorMsg[] = "PDO identifier must be an array.";
+                return false;
+            }
+
+            $this->sqlQuery = "UPDATE " . $tableName . " SET ";
+
+            $updateFields = array();
+            $variable = array();
+            foreach ($updateData as $field => $value) {
+                $fieldVar = ':' . $field;
+                $updateFields[] = $field . " = " . $fieldVar;
+            }
+            $this->sqlQuery .= implode(', ', $updateFields);
+
+            foreach ($identifier as $key => $value) {
+                $where .= " AND {$key} = :{$key}";
+                $variable[$key] = $this->escape($value, false);
+            }
+            $this->sqlQuery .= ' WHERE ' . substr($where, 4);
+
+            $this->logData .= $this->set_log_string($this->sqlQuery, 'query');
+
+            $stmt = $this->db->prepare($this->sqlQuery);
+            foreach ($updateData as $field => $value) {
+                $variable[$field] = $this->escape($value, false);
+            }
+
+            if (!$stmt->execute($variable)) {
+                $error = $this->sql_error($stmt);
+                $this->errorMsg[] = $error;
+                $this->logData .= $this->set_log_string($error, 'error');
+                return false;
+            }
+            $this->affected_rows($stmt);
+
+        }
+        unset($tableName, $updateData, $identifier);
+        return true;
+    }
+
+    /**
+     *
+     * Delete record from database table
+     *
+     * @access public
+     * @return bool|Integer
+     * @param string $tableName -> Name of database table
+     * @param array|string $identifier -> Query identifier
+     *
+     **/
+    public function delete($tableName, $identifier = null)
+    {
+        $this->logData .= $this->set_log_string("delete() called.");
+
+        if (!$this->db->is_connected()) {
+
+            $this->logData .= $this->set_log_string("No database connection made.", "error");
+            $this->errorMsg[] = "No database connection made.";
+            return false;
+
+        }
+
+        $where = '';
+
+        if (!$this->PDO) {
+
+            if (!empty($identifier)) {
+                if (substr(strtoupper(trim($identifier)), 0, 5) != 'WHERE') {
+                    $where = " WHERE " . $identifier;
+                } else {
+                    $where = " " . trim($identifier);
+                }
+            }
+            $this->sqlQuery = "DELETE FROM " . $tableName . $where;
+            $this->logData .= $this->set_log_string($this->sqlQuery, "query");
+            if (!$this->query($this->sqlQuery)) {
+                return false;
+            }
+            $this->affected_rows();
+            return true;
+
+        } else {
+
+            $this->sqlQuery = "DELETE FROM " . $tableName;
+
+            if (!is_null($identifier) && !is_array($identifier)) {
+                if (substr(strtoupper(trim($identifier)), 0, 5) != 'WHERE') {
+                    $where = " WHERE " . $identifier;
+                } else {
+                    $where = " " . trim($identifier);
+                }
+                $this->sqlQuery .= $where;
+                $stmt = $this->db->prepare($this->sqlQuery);
+            }
+
+            if (is_null($identifier)) {
+                $stmt = $this->db->prepare($this->sqlQuery);
+            }
+
+            if (!is_null($identifier) && is_array($identifier)) {
+                foreach ($identifier as $key => $value) {
+                    $where .= " AND {$key} = :{$key}";
+                    $variable[$key] = $this->escape($value, false);
+                }
+                $this->sqlQuery .= " WHERE " . substr($where, 4);
+                $stmt = $this->db->prepare($this->sqlQuery);
+                foreach ($identifier as $field => $value) {
+                    $bindField = ':' . $field;
+                    $stmt->bindParam($bindField, $identifier[$field], PDO::PARAM_INT);
+                }
+            }
+            $this->logData .= $this->set_log_string($this->sqlQuery, 'query');
+            if (!$stmt->execute($variable)) {
+                $error = $this->sql_error($stmt);
+                $this->errorMsg[] = $error;
+                $this->logData .= $this->set_log_string($error, 'error');
+                return false;
+            }
+            $this->affected_rows($stmt);
+            return true;
+
+        }
+
+    }
+
+    public function escape($input)
+    {
+        return $this->db->escape($input);
+    }
+
+    public function filter_input($input)
+    {
+        return $this->db->clean_input($input);
+    }
+
+    /**
+     *
+     * Return random result
+     * Contributed by akinas.com => mysql_random_row
+     *
+     * @access Public
+     * @return String
+     * @param Array $data -> Query details
+     * @usage rand_query(
+     *           array(
+     *                 tablename => 'NOT NULL',
+     *                 fieldid => 'id',
+     *                 fields => '*',
+     *                 limit => '0, 30',
+     *                 where => '`name` = 'james' AND `privilege` = 'user'',
+     *                 type => '0'
+     *           )
+     * )
+     *
+     **/
+    public function fetch_rand_query($data = array())
+    {
+        if (!is_array($data)) {
+            // echo error method variable need to be an array
+            return false;
+        }
+
+        switch ($data['type']) {
+
+        }
+    }
+
+    /**
+     *
+     * Get results rows using any of the database fetch methods
+     *
+     * @access Public
+     * @return Bool | Array | Object
+     * @param String | array | Integer $option -> Fetch type ie: [0]object/obj | [1]array/arr | [2]row | [3]assoc | [4]field
+     *
+     **/
+    public function fetch($option = 'all')
+    {
+
+        if (is_array($option)) {
+            if (isset($option['SQL'])) {
+                $this->set_query_string($option['SQL']);
+                $this->query();
+            }
+
+            if (isset($option['type'])) {
+                $option = $option['type'];
+            }
+
+        }
+
+        // if ( is_null( $option ) )
+        //   $option = 'all';
+
+        return $this->db->fetch($option);
+    }
+
+    /**
+     *
+     * Get number of rows in query result
+     *
+     * @access Public
+     * @return Bool | Integer
+     *
+     **/
+    public function record_count()
+    {
+        return $this->db->numRows;
+    }
+
+    /**
+     *
+     * Return number of fields in query result
+     *
+     * @access Public
+     * @return Bool | Integer
+     *
+     **/
+    public function record_fields()
+    {
+        return $this->db->numFields;
+    }
+
+    /**
+     *
+     * Return number of rows affected by the last query (INSERT, UPDATE, REPLACE or DELETE)
+     *
+     * @access Public
+     * @return Bool | Integer
+     *
+     **/
+    public function affected_rows()
+    {
+        return $this->db->affected_rows();
+    }
+
+    /**
+     *
+     * Return the ID generated in the last query
+     *
+     * @access Public
+     * @return Bool | Integer | String
+     *
+     **/
+    public function insert_id()
+    {
+        return $this->db->insert_id();
+    }
+
+    /**
+     *
+     * Escapes special characters in a string for use in an SQL statement
+     *
+     * @access public
+     * @return String | Bool
+     * @param String | Array $input -> The string that is to be escaped
+     *
+     **/
+    public function clean($input)
+    {
+        return $this->db->escape($input);
+    }
+
+    // remove and use as special function
+    public function replace_special_character($string, $specialChar = array())
+    {
+        if (!isset($specialChar) || empty($specialChar)) {
+            $specialChar = array(
+                ' ' => '-', '!' => '', '"' => '', '#' => '', '$' => '', '%' => '',
+                '&amp;' => '', '\'' => '', '(' => '', ')' => '', '*' => '', '+' => '',
+                ',' => '', '₹' => '', '.' => '', '/-' => '', ':' => '', ';' => '',
+                '<' => '', '=' => '', '>' => '', '?' => '', '@' => '', '[' => '',
+                '\\' => '', ']' => '', '^' => '', '_' => '', '`' => '', '{' => '',
+                '|' => '', '}' => '', '~' => '', '-----' => '-', '----' => '-', '---' => '-',
+                '/' => '', '--' => '-', '/_' => '-', '&' => '',
+            );
+        }
+
+        foreach ($specialChar as $needle => $replace) {
+            $string = str_replace($needle, $replace, $string);
+        }
+        return $string;
+    }
+
+    private function _set_directory()
+    {
+        $specialChar = array(' ' => '', '/' => '', '.' => '');
+        if (empty($this->fileDirectory) || !file_exists($this->fileDirectory)) {
+            //$fileDirectory = dirname( __FILE__ ) . '/';
+            $fileDirectory = str_replace('\\', '/', dirname(__FILE__)) . '/';
+            $fileDirectory .= $this->replace_special_character($this->_dbEngineDir, $specialChar) . '/';
+            $fileDirectory .= $this->replace_special_character($this->_dbFilename, $specialChar) . '.';
+            $fileDirectory .= $this->replace_special_character($this->dbFileExt, $specialChar);
+        }
+
+        //if
+
+        return $fileDirectory;
+    }
+
+    private function _check_directory()
+    {
+
+    }
+
+    // private function free_memory() {}
+
+    public function sql_error()
+    {
+        return $this->db->DBErrorMsg;
+    }
+
+    /**
+     *
+     * Through database class errors message
+     *
+     * @access public
+     * @return string | bool
+     *
+     **/
+    public function errors()
+    {
+        if ($this->suppressErrors) {
+            return false;
+        }
+
+        foreach ($this->errorMsg as $key => $value) {
+            return $value;
+        }
+
+    }
+
+    public function _test()
+    {
+        global $test;
+        //echo COPYRIGHT;
+        echo $this->db->numRows;
+        if (function_exists('mysqli_fetch_all')) {
+            echo "Mysqli_Fetch_All is working";
+        } else {
+            echo "It is not working";
+        }
+    }
+
+    /**
+     *
+     * Through database class errors message
+     *
+     * @access public
+     * @return string | bool
+     *
+     **/
+    public function generate_code($digits = 40, $options = null)
+    {
+
+        if (!is_array($options) || empty($options)) {
+
+            $characters = array(1, 2, 3, 4);
+
+        } else {
+
+            $characters = array();
+
+            if (!array_key_exists('caps', $options) || (array_key_exists('caps', $options) && $options['caps'] === true)) {
+                $characters[] .= '1';
+            }
+
+            if (!array_key_exists('small', $options) || (array_key_exists('small', $options) && $options['small'] === true)) {
+                $characters[] .= '2';
+            }
+
+            if (!array_key_exists('number', $options) || (array_key_exists('number', $options) && $options['number'] === true)) {
+                $characters[] .= '3';
+            }
+
+            if (!array_key_exists('special', $options) || (array_key_exists('special', $options) && $options['special'] === true)) {
+                $characters[] .= '4';
+            }
+
+            if (is_array($options['characters'])) {
+                $characters[] .= '5';
+                $userChars = $options['characters'];
+            }
+
+        }
+
+        $code = '';
+        $alphabetCaps = array('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z');
+        $alphabetSmall = array('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'j', 'k', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z');
+        $numbers = array('0', '1', '2', '3', '4', '5', '6', '7', '8', '9');
+        $specialChars = array('+', '-', '*', '&', '$', '#', '@', '!', '{', '}', '(', ')');
+        // $max = 4 - count($options);
+
+        for ($i = 1; $i < $digits + 1; $i++) {
+            // To decide if the digit should be numeric or alphabet
+            // $single1 = rand( 1, $max);
+            $single = array_rand($characters);
+
+            if (($characters[$single] == 1)) {
+                $alphaCapIndex = array_rand($alphabetCaps);
+                $code .= $alphabetCaps[$alphaCapIndex];
+            }
+
+            if (($characters[$single] == 2)) {
+                $alphaSmallIndex = array_rand($alphabetSmall);
+                $code .= $alphabetSmall[$alphaSmallIndex];
+            }
+
+            if (($characters[$single] == 3)) {
+                $numIndex = array_rand($numbers);
+                $code .= $numbers[$numIndex];
+            }
+
+            if (($characters[$single] == 4)) {
+                $charIndex = array_rand($specialChars);
+                $code .= $specialChars[$charIndex];
+            }
+
+            if (($characters[$single] == 5)) {
+                $charIndex = array_rand($userChars);
+                $code .= $userChars[$charIndex];
+            }
+
+        }
+
+        return $code;
+
+    }
+
+    /**
+     *
+     * Show database and SQL errors
+     *
+     * @access public
+     * @return string|bool False if the showing of errors is disabled.
+     *
+     **/
+    public function generate_session_id()
+    {
+        if (!isset($_SESSION)) {
+            @session_start();
+        }
+
+        @session_regenerate_id();
+    }
+
+    /**
+     *
+     * Show database and SQL errors
+     *
+     * @access public
+     * @return string|bool False if the showing of errors is disabled.
+     *
+     **/
+    public function get_session($name, $ID = null)
+    {
+        if (!isset($_SESSION[$name])) {
+            @session_start();
+        }
+
+        if (empty($ID) && !isset($ID)) {
+            return (isset($_SESSION[$name])) ? $_SESSION[$name] : false;
+        } else {
+            return (isset($_SESSION[$name][$ID])) ? $_SESSION[$name][$ID] : false;
+        }
+
+    }
+
+    /**
+     *
+     * Show database and SQL errors
+     *
+     * @access public
+     * @return string|bool False if the showing of errors is disabled.
+     *
+     **/
+    public function set_session($name, $value = null, $ID = null)
+    {
+        if (!isset($_SESSION[$name])) {
+            @session_start();
+        }
+
+        $this->generate_session_id(); // Update the current session id with a newly generated one
+        if (empty($ID) && !isset($ID)) {
+            $_SESSION[$name] = $value;
+        } else {
+            $_SESSION[$name][$ID] = $value;
+        }
+    }
+
+    /**
+     *
+     * Show database and SQL errors
+     *
+     * @access public
+     * @return string|bool False if the showing of errors is disabled.
+     *
+     **/
+    public function register_session($sessionData = array(), $name = null)
+    {
+        if (!isset($_SESSION[$name])) {
+            @session_start();
+        }
+
+        $this->generate_session_id(); // Update the current session id with a newly generated one
+        foreach ($sessionData as $key => $value) {
+            if (empty($name) && !isset($name)) {
+                $_SESSION[$key] = $value;
+            } else {
+                $_SESSION[$name][$key] = $value;
+            }
+        }
+    }
+
+    /**
+     *
+     * Show database and SQL errors
+     *
+     * @access public
+     * @return string|bool False if the showing of errors is disabled.
+     *
+     **/
+    public function clear_session($sessionData = array(), $name = null)
+    {
+        if (!isset($_SESSION[$name])) {
+            @session_start();
+        }
+
+        if (is_array($sessionData) && count($sessionData) > 0) {
+
+            foreach ($sessionData as $key) {
+                if (empty($name) && !isset($name)) {
+                    unset($_SESSION[$key]);
+                } else {
+                    unset($_SESSION[$name][$key]);
+                }
+            }
+
+            // NOTE: $variable = $_SESSION['variable']; unset( $_SESSION['variable'], $variable );
+            //
+            // $sessionList = "";
+
+            // foreach( $sessionData as $key ){
+            //  if ( empty( $name ) ) {
+            //    $sessionList .= '$_SESSION['.$key.'], ';
+            //  } else {
+            //    $sessionList .= '$_SESSION['.$name.']['.$key.'], ';
+            //  }
+            // }
+            // $length = strlen( $sessionList );
+            // $sessionArray = substr( $sessionList, 0, ( $length - 2 ) );
+            // unset( $sessionArray );
+
+        } else {
+
+            @session_unset();
+            @session_destroy();
+            $this->generate_session_id(); // Update the current session id with a newly generated one
+            @$_SESSION = array(); // to clear the current session array completely
+
+        }
+    }
+
+    /**
+     *
+     * Encode/Decode data
+     *
+     * @access public
+     * @return string|array|bool|object
+     * @param string|arrray|object $value -> Data that need to be encoded/decoded
+     * @param string $type -> Output type
+     *
+     **/
+    public function output($value, $type = 'jsone')
+    {
+        $this->logData .= $this->set_log_string("output() called");
+
+        if (is_null($value)) {
+            return false;
+        }
+
+        switch (strtolower($type)) {
+            case 'jsonencode':
+            case 'jsone':
+                $outputData = json_encode($value);
+                break;
+            case 'jsondecode':
+            case 'jsond':
+                $outputData = json_decode($value);
+                break;
+            case 'serialize':
+                $outputData = serialize($value);
+                break;
+            case 'unserialize':
+                $outputData = unserialize($value);
+                break;
+            case "base64encode":
+            case "base64e":
+                $outputData = base64_encode($value);
+                break;
+            case "base64decode":
+            case "base64d":
+                $outputData = base64_decode($value);
+                break;
+            case "bin2hex":
+            case "hexe":
+                $outputData = bin2hex($value);
+                break;
+            case "hex2bin":
+            case "hexd":
+                $outputData = @pack("H*", $value);
+                break;
+            case "uuencode":
+            case "uue":
+                $outputData = convert_uuencode($value);
+                break;
+            case "uudecode":
+            case "uud":
+                $outputData = convert_uudecode($value);
+            case 'xmlencode':
+            case 'xmle':
+                //$output = Database::convert_to_xml( $value );
+                $output = $value;
+                return ($output) ? $output : $this->output($value, 'jsone');
+                break;
+            default:
+                $outputData = json_encode($value);
+                break;
+        }
+        return $outputData;
+
+    }
+
+    /**
+     *
+     * Delete record from database table
+     *
+     * @access private
+     * @return bool | Integer
+     * @param string $tableName -> Name of database table
+     * @param array | string $identifier -> Query identifier
+     *
+     **/
+    public function encode($value, $type = 'md5')
+    {
+        //$this->logData .= $this->set_log_string( "_encrypt() called" );
+
+        if (is_null($value)) {
+            return false;
+        }
+
+        switch (strtolower($type)) {
+            case "md5":
+                $outputData = md5($value);
+                break;
+            case "md5d":
+                $outputData = md5(md5($value));
+                break;
+            case "sha1":
+                $outputData = sha1($value);
+                break;
+            case "crypt":
+                // encoding varies dependent on the OS
+                $outputData = crypt($value, 'test');
+                break;
+            default:
+                $outputData = md5($value);
+                break;
+        }
+        return $outputData;
+
+    }
+
+    /**
+     *
+     * Delete record from database table
+     *
+     * @access private
+     * @return bool | Integer
+     * @param string $tableName -> Name of database table
+     * @param array | string $identifier -> Query identifier
+     *
+     **/
+    public function decrypt($value)
+    {
+        return $value;
+    }
+
+    /**
+     *
+     * Delete record from database table
+     *
+     * @access private
+     * @return bool | Integer
+     * @param string $tableName -> Name of database table
+     * @param array | string $identifier -> Query identifier
+     *
+     **/
+    private function set_log_string($string, $type = 'log')
+    {
+        if (is_null($type)) {
+            $type = 'error';
+        }
+
+        $dateTime = date('DD-MM-YYYY h:i:s');
+        $logString = '';
+        switch (strtolower($type)) {
+            case 'error':
+            case 'query':
+                $logString = ucwords($type) . ': <em>' . $string . '</em>';
+                break;
+            case 'log':
+                $logString = $string;
+                break;
+            default:
+                $logString = $string;
+                break;
+        }
+        return $dateTime . ' ' . $logString . '<br />';
+
+    }
+
+}
+
+// error_reporting(E_ALL | E_WARNING | E_NOTICE);
+// ini_set('display_errors', TRUE);
+// echo str_replace( dirname( __FILE__ ),"","");
+// require_once '../../../configs/app.cfg';
+
+// $sysConfigDir = SYSTEM['configs'] . 'sys.cfg';
+// $sysFunctDir = SYSTEM['functions'] . 'sys.funct';
+
+// if ( !file_exists( $sysFunctDir ) ) {
+// echo "Yes";
+// $sysConfig = require($sysConfigDir);
+// }
+
+// $sysConfig = require_once($sysConfigDir);
+// $config = require_once( $sysFunctDir );
+// $fynxDatabase = new FynxDatabase();

@@ -1,0 +1,401 @@
+<?php
+
+/**
+*
+* The Fynx Logger class is a simple and easily customerizeable logging class.
+* It has different logging level which is very useful for debugging, it can 
+* be easy integrated to any application project.
+*
+* @version: 1.09.20
+* @package Fynix Framework
+* @author: Jencube Team
+* @license: http://opensource.org/licenses/gpl-license.php
+* GNU General Public License (GPL)
+* @copyright: Copyright (c) 2019 - 2020 Jencube
+* @twitter: @deusex0 & @One_Oracle
+* @filesource system/libraries/handler/mysqliDB.lib
+*
+**/
+
+class FynxLogger {
+
+    /**
+    *
+    * Logging status
+    *
+    * @access Private
+    * @var Bool
+    *
+    **/
+    private $_logStatus = TRUE;
+
+    /**
+    *
+    * Logging system filename variale
+    *
+    * @access Private
+    * @var String
+    *
+    **/
+    private $_sysLogFilename = 'syslog';
+
+    /**
+    *
+    * Logging user filename variable
+    *
+    * @access Private
+    * @var String
+    *
+    **/
+    private $_userLogFilename = 'userlog';
+
+    /**
+    *
+    * Logging file path
+    *
+    * @access Private
+    * @var String
+    *
+    **/
+    private $_logFilePath = FYNX_SYSTEM['logs'];
+
+    /**
+    *
+    * Logging user file mode variable
+    *
+    * @access Private
+    * @var String
+    *
+    **/
+    private $_logFileMode = 'append';
+
+    /**
+    *
+    * Logging user file size variable
+    *
+    * @access Private
+    * @var integer
+    *
+    **/
+    private $_logFilesize = 1000000;
+
+    /**
+    *
+    * Logging date format variable
+    *
+    * @access Public
+    * @var String
+    *
+    **/
+    public $dateTimeFormat = '{yyyy}-{mm}-{dd} {12hr}:{mm}:{sec}';
+
+    /**
+    *
+    * Logging message format variable
+    *
+    * @access Private
+    * @var String
+    *
+    **/
+    private $_logMessageFormat = '[{log_datetime}]\t[{log_filename}]\t[{log_level}]:\t{log_message}';
+    
+    /**
+    *
+    * Logging datetime variable
+    *
+    * @access private
+    * @var String
+    *
+    **/
+    private $_dateTime = NULL;
+
+    /**
+    *
+    * Date time variable list
+    *
+    * @access Private
+    * @var Array
+    *
+    **/
+    // private $_dateTimeVar = [
+    //     '{yyyy}' => 'Y',    // A four digit representation of a year (2022)
+    //     '{yy}' => 'y',      // A two digit representation of a year (22)
+    //     '{m}' => 'n',       // A numeric representation of a month, without leading zeros (1)
+    //     '{mm}' => 'm',      // A numeric representation of a month, with leading zeros (01)
+    //     '{mmm}' => 'M',     // A three letter textual representation of a month (Jan)
+    //     '{mmmm}' => 'F',    // A full textual representation of a month (January)
+    //     '{d}' => 'j',       // A numeric representation of a day, without leading zeros (6)
+    //     '{dd}' => 'd',      // A numeric representation of a day, with leading zeros (06)
+    //     '{ddd}' => 'D',     // A three letter textual representation of a day (Mon)
+    //     '{dddd}' => 'l',    // A full textual representation of a day (Monday)
+    //     '{hr}' => 'g',      // A 12-hour format of an hour, without leading sero (4)
+    //     '{12hr}' => 'g',    // A 12-hour format of an hour, without leading sero (4)
+    //     '{24hr}' => 'G',    // A 24-hour format of an hour, without leading sero (16)
+    //     '{hour}' => 'h',    // A 12-hour format of an hour, with leading sero (04)
+    //     '{12hour}' => 'h',  // A 12-hour format of an hour, with leading sero (04)
+    //     '{24hour}' => 'H',  // A 24-hour format of an hour, with leading sero (16)
+    //     '{min}' => 'i',      // A format of a minute, with leading sero (04)
+    //     '{sec}' => 's',      // A format of a second, with leading sero (08)
+    //     '{AM/PM}' => 'A',    // Uppercase AM or PM
+    //     '{am/pm}' => 'a',    // Uppercase AM or PM
+    // ];
+
+    /**
+    *
+    * Logging levels variable
+    *
+    * @access Private
+    * @var Array
+    *
+    **/
+    private $_logLevels = [
+        0 => 'alert',
+        1 => 'critical',
+        2 => 'debug',
+        3 => 'emergency',
+        4 => 'error',
+        5 => 'info',
+        6 => 'notice',
+        7 => 'warning',
+    ];
+
+    private $_logFileName;
+
+    /**
+    *
+    * Log message variable
+    *
+    * @access Protected
+    * @var String
+    *
+    **/
+    protected $logMessage = NULL;
+
+    /**
+    *
+    * Class constructor initialization to set the class
+    * properties and connection to the database
+    *
+    * @access Public
+    * @param Array
+    *
+    **/
+    public function __construct() {
+
+        $sysConfig = FYNX_SYSTEM['configs'] . 'sys.cfg';
+        // $sysConfig = '../../configs/sys.cfg';
+        if ( file_exists( $sysConfig ) ) {
+            // $this->_sysConfig = include( '../../configs/sys.cfg' );
+            $this->_sysConfig = include( $sysConfig );
+            $this->dateTimeFormat = $this->_sysConfig['system_logger']['format']['date_time'];
+            $this->_sysLogFilename = $this->_sysConfig['system_logger']['format']['filename'];
+            $this->_logMessageFormat = $this->_sysConfig['system_logger']['format']['message'];
+            $this->_logFilesize = $this->_sysConfig['system_logger']['file_size'];
+            $this->_logStatus = $this->_sysConfig['system_logger']['activate'];
+        }
+
+        if ( $this->_logStatus ==! TRUE ) {
+            return FALSE;
+        }
+      
+    }
+
+    public function echo_item(){
+        echo $this->_logFileName;
+    }
+
+
+    // public function write( $location, $msgType, $message ) {
+
+    // }
+
+    /**
+    *
+    * Set the log message display format
+    *
+    * @access Public
+    * @param String $formatString
+    *
+    **/
+    public function set_message_format( $messageFormat = NULL ) {
+        $this->_logMessageFormat = ( is_null( $messageFormat ) ) ? $this->_logMessageFormat : $messageFormat;
+    }
+
+    /**
+    *
+    * Set the filename for the log file
+    *
+    * @access Public
+    * @param String $filename
+    *
+    **/
+    public function set_filename( $filename = NULL ) {
+        $this->_sysLogFilename = ( is_null( $filename ) ) ? $this->_sysLogFilename : $filename;
+    }
+
+    /**
+    *
+    * Set the log files directory
+    *
+    * @access Private
+    * @param String $directory
+    *
+    **/
+    public function set_directory( $directory = NULL ) {
+        $this->_logFilePath = ( is_null( $directory ) ) ? $this->_logFilePath : $directory;
+    }
+
+    /**
+    *
+    * Set the log source
+    *
+    * @access Private
+    *
+    **/
+    private function _set_log_source() {
+        $backTrace = debug_backtrace();
+        // var_dump( $backTrace );
+        $this->_logFileName = ucwords( pathinfo( $backTrace[0]['file'], PATHINFO_FILENAME ) );
+    }
+
+    /**
+    *
+    * Set the log levels
+    *
+    * @access Public
+    * @param Array $levels
+    *
+    **/
+    public function set_level( $levels = array() ) {
+        $this->_logLevels = ( is_array( $levels ) ) ? $this->_logLevels : $levels;
+    }
+
+    /**
+    *
+    * Set the log date and time format
+    *
+    * @access Public
+    * @param String $dateTime
+    *
+    **/
+    public function set_datetime_format( $dateTime = NULL ) {
+        $this->dateTimeFormat = ( is_null( $dateTime ) ) ? $this->dateTimeFormat : $dateTime;
+    }
+
+    /**
+    *
+    * Set the log option
+    *
+    * @access Private
+    * @param Array $options
+    *
+    **/
+    public function set_option( $options = array() ) {
+
+    }
+
+    /**
+    *
+    * Set the log file mode
+    *
+    * @access Public
+    * @param String | Integer $fileMode -> Write | append 
+    *
+    **/
+    public function set_filemode( $fileMode = NULL ) {
+        $this->_logFileMode = ( is_null( $fileMode ) ) ? $this->_logFileMode : $fileMode;
+    }
+
+    /**
+    *
+    * Set the log file size
+    *
+    * @access Public
+    * @param String $filesize
+    *
+    **/
+    public function set_filesize( $filesize = NULL ) {
+        $this->_logFilesize = ( is_null( $filesize ) ) ? $this->_logFilesize : $filesize;
+    }
+
+    public function log( $logMessage = NULL, $logLevel = 0 ) {
+        if ( is_null( $logMessage ) || empty( $logMessage ) )
+            return FALSE;
+
+        $this->_set_log_source();
+        $this->logMessage = $this->_format( $logMessage, $logLevel );
+        return $this->logMessage;
+        // $this->_save();
+
+    }
+
+    /**
+    *
+    * translate the datetime format set
+    *
+    * @access Private
+    * @return String
+    *
+    **/
+    public function _get_datetime() {
+        $unwanted = [':','-','/'];
+        $this->_dateTime = $this->dateTimeFormat;
+        $getFindArray = preg_filter( '/$/', '}', explode("}", str_replace( $unwanted, "", $this->_dateTime ) ) );
+        $findArray = array_map( 'trim', array_slice( $getFindArray, 0, array_search( '}', $getFindArray ) ) );
+
+        foreach ( $findArray as $key => $value ) {
+            $this->_dateTime = str_replace ( $findArray[$key], $this->_sysConfig['date_time_format'][$findArray[$key]], $this->_dateTime );
+        }
+
+        return date( $this->_dateTime );
+    }
+
+    private function _format( $logMessage, $logLevel ) {
+        $messageItems = [ 
+            '{log_datetime}' => $this->_get_datetime(),
+            '{log_filename}' => $this->_logFileName,
+            '{log_level}' => $logLevel,
+            '{log_message}' => $logMessage
+        ];
+
+        foreach ( $messageItems as $key => $value ) {
+            $this->_logMessageFormat = str_replace( $key, $value, $this->_logMessageFormat );
+        }
+
+        return $this->_logMessageFormat .'\n';
+    }
+
+    private function save() {
+        // if (!$this->min_level_reached($level)) {
+        // return;
+        // }
+        // $logline = $this->format($level, $message, $context);
+        // file_put_contents($this->logfile, $logline, FILE_APPEND | LOCK_EX);
+
+    }
+
+    public function _get_log_file() {
+        $content = @file_get_contents( $this->_logFilePath . $this->_sysLogFilename . '.log' );
+        return $content;
+    }
+
+    public function show() {
+        // if ( ! $this->min_level_reached( $level ) ) {
+        // return;
+        // }
+        // echo $this->format( $level, $message, $context );
+    }
+
+    // public function display( $var ) {
+    //     ob_start();
+    //     var_dump($var);
+    //     $output = ob_get_contents();
+    //     ob_end_clean();
+    //     return $output;
+    // }
+
+}
+
+// $fynxLogger = new FynxLogger();
+
+?>

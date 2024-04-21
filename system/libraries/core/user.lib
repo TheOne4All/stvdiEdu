@@ -1,0 +1,1612 @@
+<?php
+
+/**
+ *
+ * PHP Class to help database manipulation. It can be used as a user class, login class etc.
+ *
+ * @version: 3.12.19
+ * @package Fynix Framework
+ * @author: Jencube Team
+ * @license: GNU General Public License (GPL) http://opensource.org/licenses/gpl-license.php
+ * @copyright: Copyright (c) 2013 - 2020 Jencube
+ * @supportfile(s): database.lib
+ * @twitter: @deusex0 & @One_Oracle
+ * @filesource system/database/user.lib
+ *
+ **/
+
+use PHPMailer\PHPMailer\Exception;
+use PHPMailer\PHPMailer\PHPMailer;
+
+class FynxUser extends Processor
+{
+
+    /**
+     *
+     * User ID
+     *
+     * @access Private
+     * @var Integer
+     *
+     **/
+    private $_userID;
+
+    /**
+     *
+     * User Session ID
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_sessionID;
+
+    /**
+     *
+     * User Data/Details
+     *
+     * @access Private
+     * @var Array
+     *
+     **/
+    private $_userData = array();
+
+    /**
+     *
+     * User Table Name
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_userTableName;
+    private $_userTableName_ext;
+    private $_userTableName_ext1;
+    private $_orgTableName;
+    private $_sessionTableName;
+
+    /**
+     *
+     * Username
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_username;
+
+    /**
+     *
+     * User Password
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_userPassword;
+
+    /**
+     *
+     * User Password encrypted
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_encryptPassword;
+
+    /**
+     *
+     * User Password encrypted
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_encryptedPassword;
+
+    /**
+     *
+     * If logged in user is a Superuser
+     *
+     * @access Private
+     * @var Bool
+     *
+     **/
+    private $_is_superuser = false;
+
+    /**
+     *
+     * User previous logged in date and time
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_lastLoginTime;
+
+    /**
+     *
+     * Generated token
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_token;
+
+    /**
+     *
+     * Database Password**
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_passwordLength = 12;
+
+    /**
+     *
+     * User IP Address
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_ipAddress;
+
+    /**
+     *
+     * Login
+     *
+     * @access public
+     * @var String
+     *
+     **/
+    public $redirectURL;
+
+    /**
+     *
+     * Database Password
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_loginAccess = false;
+
+    /**
+     *
+     * Database Password
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_accessLevel;
+
+    /**
+     *
+     * Database Password
+     *
+     * @access Private
+     * @var Bool
+     *
+     **/
+    private $_success = false;
+
+    /**
+     *
+     * Database Password
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_is_online;
+
+    /**
+     *
+     * Database Password
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_tablePrefix;
+
+    /**
+     *
+     * Database Password
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_fieldPrefix;
+
+    /**
+     *
+     * Database connection
+     *
+     * @access Protected
+     * @var String | Array | Bool | Integer
+     *
+     **/
+    protected $db;
+
+    /**
+     *
+     * Database Password
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_sessionName;
+
+    /**
+     *
+     * Set if login details are posted
+     *
+     * @access Private
+     * @var Bool
+     *
+     **/
+    private $_posted = false;
+
+    /**
+     *
+     * Database Password
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_cookieName;
+
+    /**
+     *
+     * Database Password
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_cookieTime;
+
+    /**
+     *
+     * Database Password
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_cookiePath;
+
+    /**
+     *
+     * Config file path
+     *
+     * @access private
+     * @var string
+     *
+     **/
+    private $_userConfDir = FYNX_SYSTEM['configs'] . 'user.cfg';
+
+    /**
+     *
+     * Cookies path
+     *
+     * @access private
+     * @var string
+     *
+     **/
+    private $_appData;
+
+    /**
+     *
+     * Cookies path
+     *
+     * @access private
+     * @var string
+     *
+     **/
+    private $_sysConfig;
+
+    /**
+     *
+     * Database Password
+     *
+     * @access Public
+     * @var Array
+     *
+     **/
+    public $errors = array();
+
+    /**
+     *
+     * Error input identifier
+     *
+     * @access Public
+     * @var Array
+     *
+     **/
+    public $errorInput = array();
+
+    /**
+     *
+     * Database Password
+     *
+     * @access Public
+     * @var String
+     *
+     **/
+    private $_confirmation = null;
+
+    /**
+     *
+     * Date & Time
+     *
+     * @access Public
+     * @var String
+     *
+     **/
+    public $dateTime = 'Y-m-d h:i:s';
+
+    /**
+     *
+     * Date & Time
+     *
+     * @access Public
+     * @var String
+     *
+     **/
+    public $_defaultTimeOut = '1800 seconds';
+
+    /**
+     *
+     * Date & Time
+     *
+     * @access Public
+     * @var String
+     *
+     **/
+    private $_loginPeriod = false;
+
+    /**
+     *
+     * Date & Time
+     *
+     * @access private
+     * @var String
+     *
+     **/
+    private $_loginPeriodStart = '6:00 AM';
+    /**
+     *
+     * Date & Time
+     *
+     * @access Private
+     * @var String
+     *
+     **/
+    private $_loginPeriodEnd = '6:00 PM';
+
+    /**
+     *
+     * Date & Time
+     *
+     * @access Public
+     * @var String
+     *
+     **/
+    public $timeZone = 'Africa/Lagos';
+
+    /**
+     *
+     * Class constructor initialization to set the class
+     * properties and connection to the database
+     *
+     * @access Public
+     * @param Array
+     *
+     **/
+    public function __construct($config = null)
+    {
+        require_once FYNX_PUBLIC['system'] . 'libraries/phpmailer/src/PHPMailer.php';
+        require_once FYNX_PUBLIC['system'] . 'libraries/phpmailer/src/Exception.php';
+        require_once FYNX_PUBLIC['system'] . 'libraries/phpmailer/src/SMTP.php';
+
+        $this->mail = new PHPMailer(true);
+
+        // Log here; initial User class
+        if (!is_array($config) || is_null($config)) {
+
+            // Log here: File not array
+            if (!file_exists($this->_userConfDir)) {
+
+                // Log here: user config doesn't exist
+                return false;
+            }
+            $sysUserConfig = include $this->_userConfDir;
+            $this->_set_sys_user_config($sysUserConfig);
+        }
+        return true;
+    }
+
+    /**
+     *
+     * Close/kill the database connection and query results
+     *
+     * @access Private
+     * @return Bool
+     *
+     **/
+    private function _get_idle_timeout($idleTimeout)
+    {
+        $timeout = explode(' ', $idleTimeout);
+        if (count($timeout) <= 1) {
+
+            $timeout[0] .= ' seconds';
+            $this->_get_idle_timeout($timeout[0]);
+
+        } else {
+
+            switch (strtolower($timeout[1])) {
+                case 'min':
+                case 'mins':
+                case 'minutes':
+                    $defaultIdleTime = $timeout[0] * 60;
+                    break;
+                case 'sec':
+                case 'secs':
+                case 'seconds':
+                    $defaultIdleTime = $timeout[0];
+                    break;
+                case 'hr':
+                case 'hrs':
+                case 'hours':
+                    $defaultIdleTime = $timeout[0] * 3600;
+                    break;
+                default:
+                    $defaultIdleTime = $this->_get_idle_timeout($timeout[0]);
+            }
+            return '+' . $defaultIdleTime . ' seconds';
+
+        }
+
+    }
+
+    /**
+     *
+     * Close/kill the database connection and query results
+     *
+     * @access Private
+     * @return Bool
+     *
+     **/
+    private function _set_sys_user_config($config)
+    {
+        // log here: Set user config data
+        if (!is_array($config) || is_null($config)) {
+            return false;
+        }
+
+        $this->_userTableName = (isset($config['_user_']['tbl_name'])) ? $config['_user_']['tbl_name'] : $this->_userTableName;
+        $this->_userTableName_ext = (isset($config['_user_']['tbl_name_ext'])) ? $config['_user_']['tbl_name_ext'] : $this->_userTableName_ext;
+        $this->_userTableName_ext1 = (isset($config['_user_']['tbl_name_ext1'])) ? $config['_user_']['tbl_name_ext1'] : $this->_userTableName_ext1;
+        $this->_orgTableName = (isset($config['_user_']['tbl_org'])) ? $config['_user_']['tbl_org'] : $this->_orgTableName;
+        $this->_sessionTableName = (isset($config['_user_']['tbl_session'])) ? $config['_user_']['tbl_session'] : $this->_sessionTableName;
+        $this->_sessionName = (isset($config['_session_']['name'])) ? $config['_session_']['name'] : $this->_sessionName;
+        $this->_cookieName = (isset($config['_cookie_']['name'])) ? $config['_cookie_']['name'] : $this->_cookieName;
+        $this->_cookieTime = (isset($config['_cookie_']['duration'])) ? $config['_cookie_']['duration'] : $this->_cookieTime;
+        $this->_cookiePath = (isset($config['_cookie_']['path'])) ? $config['_cookie_']['path'] : $this->_cookiePath;
+        $this->_defaultTimeout = (isset($config['_user_']['idle_timeout'])) ? $this->_get_idle_timeout($config['_user_']['idle_timeout']) : $this->_get_idle_timeout($this->_defaultTimeOut);
+        return $this;
+    }
+
+    /**
+     *
+     * Function tells if user is logged in
+     *
+     * @access Public
+     * @param Null
+     *
+     **/
+    public function is_login()
+    {
+        // log here: Check if user login
+        if (isset($_SESSION['user_session'])) {
+            $response = $this->get_record($this->_sessionTableName)->where('session_id', $_SESSION['user_session']['session_id'])->limit(1)->go();
+            $output = !empty($response) ? true : false;
+        } else {
+            $output = false;
+        }
+        return $output;
+    }
+
+    /**
+     *
+     * Function calculates idle time of session
+     * and gives back duration
+     *
+     * @access Public
+     * @param Null
+     *
+     **/
+    public function is_idle($logout = false, $currentTime = null)
+    {
+        // log here: Check if user is idle
+        if (is_null($currentTime)) {
+            $currentTime = strtotime(date('Y-m-d h:i:s'));
+        }
+        if (isset($_SESSION['last_active_time'])) {
+            $previousTime = ($_SESSION['last_active_time'] + (int) ($this->_defaultTimeout));
+            $_SESSION['idle_log'] = [
+                'Current Time: ' . date('Y-m-d H:i:sa', $currentTime) . '<br>',
+                'Last Active Time: ' . date('Y-m-d H:i:sa', $_SESSION['last_active_time']) . '<br>',
+                'Idle Duration: ' . ($this->_defaultTimeout) . ' <br>',
+                'End Active Time: ' . date('Y-m-d H:i:sa', $previousTime) . '<br>',
+                'Current Duration: ' . $currentTime - $previousTime . ' seconds <br>',
+            ];
+            if ($previousTime <= $currentTime) {
+                return true;
+                exit();
+            } else {
+                $_SESSION['last_active_time'] = $currentTime;
+            }
+        }
+        return false;
+    }
+
+    /**
+     *
+     * Function to execute user registration and send
+     * email confirmation
+     *
+     * @access Public
+     * @return Bool
+     * @param Null
+     *
+     **/
+    public function register_user($data, $send_email = true)
+    {
+        // verify regisgistration data
+        $verify_response = $this->_verify_register_user($data);
+
+        if ($verify_response === true) {
+
+            $dbase_tbl = $this->_userTableName_ext1;
+
+            // build parameter array for registration
+            $user_array = [
+                'user_id' => $this->guidv4() . '-' . date('Ymd-His'),
+                'user_pass' => hash("sha512", md5($data['password'])),
+                'user_phone' => isset($data['phone']) ? $data['phone'] : '234',
+                'user_role' => $data['access'],
+                'user_name' => strtolower($data['firstname'] . '.' . $data['lastname']),
+                'user_email' => $data['user_email'],
+                'org_id' => isset($data['org_id']) ? $data['org_id'] : 'ORG',
+            ];
+            $detail_array = [
+                'user_id' => $user_array['user_id'],
+                'firstname' => $data['firstname'],
+                'lastname' => $data['lastname'],
+                'role_id' => $data['access'],
+                'dob' => '1989-01-01',
+                'address' => 'Lagos, Nigeria',
+                'email' => $data['user_email'],
+                'phone' => isset($data['phone']) ? $data['phone'] : '234',
+                'org_id' => isset($data['org_id']) ? $data['org_id'] : 'ORG',
+            ];
+            if ($data['access'] != '3') {
+
+                $dbase_tbl = $this->_userTableName_ext;
+
+                $detail_array['employee_id'] = '001';
+                $detail_array['date_of_joining'] = date("Y-m-d");
+
+                $org_array = [
+                    'org_id' => isset($data['org_id']) ? $data['org_id'] : 'ORG',
+                    'name' => isset($data['cname']) ? $data['cname'] : null,
+                    'email' => $data['user_email'],
+                ];
+            }
+
+            $inserted_user = $this->add_record($this->_userTableName, $user_array)->go();
+            $inserted_detail = $this->add_record($dbase_tbl, $detail_array)->go();
+            $inserted_org = isset($org_array['org_id']) ? $this->add_record($this->_orgTableName, $org_array)->go() : true;
+            if ($inserted_user == true && $inserted_detail == true && $inserted_org == true) {
+                $this->access = true;
+            } else {
+                $this->add_record($this->_userTableName)->where('user_id', $org_array['user_id'])->go();
+                $this->add_record($this->_orgTableName)->where('org_id', isset($org_array['org_id']) ? $org_array['org_id'] : 'ORG')->go();
+                $this->access = 'registration_failed';
+            }
+        } else { $this->access = $verify_response;}
+        return $this->access;
+    }
+
+    /**
+     *
+     * Function to verify user registration
+     *
+     * @access Private
+     * @return Bool
+     * @param Null
+     *
+     **/
+    private function _verify_register_user($data)
+    {
+        $this->access = false;
+
+        if (empty($data['firstname'])) {
+            return 'empty_firstname';
+            exit();
+        }
+
+        if (empty($data['lastname'])) {
+            return 'empty_lastname';
+            exit();
+        }
+
+        if (empty($data['user_email'])) {
+            return 'empty_email';
+            exit();
+        }
+
+        if ($this->_check_user_email($data) === true) {
+            return 'email_exist';
+            exit();
+        }
+        return true;
+    }
+
+    /**
+     *
+     * Function to execute user login
+     *
+     * @access Public
+     * @return Bool
+     * @param Null
+     *
+     **/
+    public function login_user($data)
+    {
+        // verify regisgistration data
+        $verify_response = $this->_verify_login_user($data);
+        if (is_array($verify_response) && !empty($verify_response)) {
+
+            // check the user license expiry time
+            // code...
+
+            // check if user session already exist
+            $session_response = $this->_session_exist($verify_response[0]['user_id']);
+            if ($session_response === true) {
+                $session_data = [
+                    'user_id' => $verify_response[0]['user_id'],
+                    'org_id' => $verify_response[0]['org_id'],
+                    'user_email' => $verify_response[0]['user_email'],
+                ];
+                $this->access = $this->_register_session($session_data);
+            } else { $this->access = 'session_already_exist';}
+        } else { $this->access = $verify_response;}
+        return $this->access;
+    }
+
+    /**
+     *
+     * Function verifies user login credentials
+     *
+     * @access Private
+     * @return Bool
+     * @param Null
+     *
+     **/
+    private function _verify_login_user($data = null)
+    {
+        if (is_null($data)) {
+            return 'empty_parameter';
+            exit();
+        }
+        if (empty($data['password'])) {
+            return 'empty_password';
+            exit();
+        }
+
+        if (empty($data['user_email'])) {
+            return 'empty_email';
+            exit();
+        }
+        $verify_user_response = $this->_check_user_login_data($data);
+        if ($verify_user_response === false) {
+            return 'invalid_login_data';
+            exit();
+        }
+        return $verify_user_response;
+    }
+
+    /**
+     *
+     * Function sets sessions when user registration
+     * is successful
+     *
+     * @access Private
+     * @return Bool
+     * @param Null
+     *
+     **/
+    private function _register_session($data = [])
+    {
+        if (empty($data)) {
+            return 'empty_parameter';
+            exit();
+        }
+        if (!isset($data['org_id'])) {
+            return 'Invalid_org_id';
+            exit();
+        }
+        if (!isset($data['user_id'])) {
+            return 'Invalid_user_id';
+            exit();
+        }
+        if (!isset($data['user_email'])) {
+            return 'Invalid_user_email';
+            exit();
+        }
+
+        // create new session for the login user
+        $user_session = [
+            'session_id' => session_create_id(),
+            'org_id' => $data['org_id'],
+            'user_id' => $data['user_id'],
+            'user_email' => $data['user_email'],
+        ];
+
+        $_SESSION['user_session'] = $user_session;
+        $_SESSION['login_time'] = strtotime(date('Y-m-d h:i:s'));
+        $_SESSION['last_active_time'] = strtotime(date('Y-m-d h:i:s'));
+        $_SESSION['authenticated'] = true;
+        $_SESSION['logout'] = false;
+        return $this->replace_record($this->_sessionTableName, $user_session)->go();
+        exit();
+    }
+
+    /**
+     *
+     * Function checks if user session already exist in
+     * database
+     *
+     * @access Private
+     * @return Bool
+     * @param Null
+     *
+     **/
+    private function _session_exist($data = null)
+    {
+        $check_session = $this->get_record($this->_sessionTableName)->where('user_id', $data)->go();
+        if (!empty($check_session)) {
+            return false;
+            exit();
+        }
+        return true;
+    }
+
+    /**
+     *
+     * Function deletes user session if already exist in
+     * database
+     *
+     * @access Private
+     * @return Bool
+     * @param Null
+     *
+     **/
+    private function _delete_session_exist($data = null)
+    {
+        $response = $this->get_record($this->_userTableName, 'user_id')->where('org_id', $data['org_id'])->and_where('user_email', $data['user_email'])->limit(1)->go();
+        $delete_session = $this->delete_record($this->_sessionTableName)->where('user_id', $response[0]['user_id'])->go();
+        if ($delete_session) {
+            return true;
+            exit();
+        }
+        return false;
+    }
+
+    /**
+     *
+     * Function processes user session that already exist
+     * in database by deleting session and running verify
+     * user login again using 4 parameters; user_id, org_id,
+     * email and password
+     *
+     * @access Public
+     * @return Bool
+     * @param Null
+     *
+     **/
+    public function process_session_exist($data = [])
+    {
+        if (empty($data)) {
+            return false;
+            exit();
+        }
+
+        // verify regisgistration data
+        $verify_response = $this->_verify_login_user($data);
+        $register_data = [
+            'user_id' => $verify_response[0]['user_id'],
+            'org_id' => $verify_response[0]['org_id'],
+            'user_email' => $verify_response[0]['user_email'],
+        ];
+        $new_session = $this->_register_session($register_data);
+        if ($new_session === true) {
+            return true;
+            exit();
+        }
+        return false;
+    }
+
+    /**
+     *
+     * Function checks user email data if it exists in
+     * database
+     *
+     * @access Private
+     * @return Bool
+     * @param Null
+     *
+     **/
+    private function _check_user_email($data)
+    {
+        $org = isset($data['org_id']) ? $data['org_id'] : 'ORG';
+        $check_email = $this->get_record($this->_userTableName)->where('org_id', $org)->and_where('user_email', $data['user_email'])->limit(1)->go();
+
+        if (empty($check_email)) {
+            return false;
+            exit();
+        }
+        return true;
+    }
+
+    /**
+     *
+     * Function checks user login data if it exists in
+     * database
+     *
+     * @access Private
+     * @return Bool
+     * @param Null
+     *
+     **/
+    private function _check_user_login_data($data)
+    {
+        $hashed_password = hash("sha512", md5($data['password']));
+        $field_filter = 'user_id, org_id, user_email, user_role';
+        $org = isset($data['org_id']) ? $data['org_id'] : 'ORG';
+        $check_login = $this->get_record($this->_userTableName, $field_filter)->where('org_id', $org)->and_where('user_email', $data['user_email'])->and_where('user_pass', $hashed_password)->and_where('is_active', '1')->limit(1)->go();
+        if (empty($check_login)) {
+            return false;
+            exit();
+        }
+        return $check_login;
+    }
+
+    /**
+     *
+     * Function helps send confirmation email after
+     * successful processes like registration,
+     * reset password and so on
+     *
+     * @access Public
+     * @return Bool
+     * @param String $name -> Name of session
+     * @param String $ID -> Session key
+     *
+     **/
+    public function email_confirmation($email = [], $mail_settings = [])
+    {
+        if (empty($email)) {
+            return "empty_parameter";
+            exit();
+        }
+        if (!isset($email['from'])) {
+            return "invalid_from_parameter";
+            exit();
+        }
+        if (!isset($email['to'])) {
+            return "invalid_to_parameter";
+            exit();
+        }
+        if (!isset($email['subject'])) {
+            return "invalid_subject_parameter";
+            exit();
+        }
+        if (!isset($email['body'])) {
+            return "invalid_body_parameter";
+            exit();
+        }
+        try {
+
+            //Server settings
+            if (!empty($mail_settings) && $mail_settings['mail_method'] === 1) {
+                $this->mail->SMTPDebug = SMTP::DEBUG_SERVER;
+                $this->mail->isSMTP();
+                $this->mail->Host = $mail_settings['smtp_server'];
+                $this->mail->SMTPAuth = true;
+                $this->mail->Username = $mail_settings['smtp_username'];
+                $this->mail->Password = $mail_settings['smtp_password'];
+                $this->mail->SMTPSecure = $mail_settings['ssl_tls'] === 'tls' ? PHPMailer::ENCRYPTION_SMTPS : null;
+                $this->mail->Port = $mail_settings['smtp_port'];
+            }
+
+            //Recipients
+            is_array($email['from']) ? $this->mail->setFrom($email['from'][0], $email['from'][1]) : $this->mail->setFrom($email['from']);
+            if (is_array($email['to'])) {
+                foreach ($email['to'] as $value) {
+                    $this->mail->addAddress($value[0], $value[1]);
+                }
+            } else {
+                $to = explode(',', $email['to']);
+                foreach ($to as $value) {
+                    $this->mail->addAddress($value);
+                }
+            }
+            isset($email['replyTo']) && is_array($email['replyTo']) ? $this->mail->addReplyTo($email['replyTo'][0], $email['replyTo'][1]) : null;
+            if (isset($email['cc'])) {
+                $cc = explode(',', $email['cc']);
+                foreach ($cc as $value) {
+                    $this->mail->addCC($value);
+                }
+            }
+            if (isset($email['bcc'])) {
+                $bcc = explode(',', $email['bcc']);
+                foreach ($bcc as $value) {
+                    $this->mail->addBCC($value);
+                }
+            }
+
+            //Attachments
+            if (isset($email['attachment'])) {
+                $attachment = explode(',', $email['attachment']);
+                foreach ($attachment as $value) {
+                    $this->mail->addAttachment($value);
+                }
+            }
+
+            //Content
+            $this->mail->isHTML(true); //Set email format to HTML
+            $this->mail->Subject = $email['subject']; //Here is the subject
+            $this->mail->Body = $email['body']; //This is the HTML message body <b>in bold!</b>
+
+            $this->mail->send();
+            $sent = true;
+        } catch (Exception $e) {
+            $sent = "Message could not be sent. Mailer Error: {$this->mail->ErrorInfo}";
+        }
+        return $sent;
+    }
+
+    /**
+     *
+     * Functions checks if logout session is set to true
+     *
+     * @access Private
+     * @return Bool
+     * @param Null
+     *
+     **/
+    public function is_logout()
+    {
+        return isset($_SESSION['logout']) && $_SESSION['logout'] === true ? true : false;
+    }
+
+    /**
+     *
+     * Logout the current user
+     *
+     * @access Public
+     * @return Boolean
+     *
+     **/
+    public function logout()
+    {
+        if (isset($_SESSION['user_session'])) {
+            $delete_session = $this->_delete_session_exist($_SESSION['user_session']);
+            if ($delete_session) {
+                $this->unset_session();
+            }
+        } else {
+            $this->_clear_session();
+        }
+        return true;
+    }
+
+    /**
+     *
+     * Function unsets or clears selected sessions
+     *
+     * @access Public
+     * @return Boolean
+     *
+     **/
+    public function unset_session($sessionData = [])
+    {
+        if (empty($sessionData)) {
+            $sessionData = ['user_session', 'login_time', 'last_active_time', 'authenticated', 'idle_log'];
+        }
+        return $this->_clear_session($sessionData);
+    }
+
+    /**
+     *
+     * Functions Destroy selected or all user information in
+     * session
+     *
+     * @access private
+     * @return string|bool False if the showing of errors is disabled.
+     *
+     **/
+    private function _clear_session($sessionData = [])
+    {
+        if (is_array($sessionData) && !empty($sessionData)) {
+
+            foreach ($sessionData as $key) {
+                unset($_SESSION[$key]);
+            }
+        } else {
+            @session_unset();
+            @session_destroy();
+            $_SESSION = array();
+        }
+        if (session_status() == PHP_SESSION_ACTIVE) {
+            $_SESSION['logout'] = true;
+        }
+        return true;
+    }
+
+    /**
+     *
+     * Functions gets user role or access level
+     *
+     * @access public
+     * @return string value of role or access level
+     *
+     **/
+    public function get_user_role($userID = null)
+    {
+        if (empty($userID)) {
+            $response = 'empty_parameter';
+        }
+        $record = $this->get_record($this->_userTableName, 'user_role')->where('user_id', $userID)->limit(1)->go();
+        if (!empty($record)) {
+            $response = $record[0]['user_role'];
+        } else {
+            $response = false;
+        }
+        return $response;
+    }
+
+    /**
+     *
+     * Functions gets user data or records
+     *
+     * @access public
+     * @return array value of user data or record
+     *
+     **/
+    public function get_user_data($userID = null, $role = null)
+    {
+        if (empty($userID)) {
+            $response = 'empty_user_ID';
+        }
+        if (empty($role)) {
+            $response = 'empty_role_access';
+        }
+        $dbase_tbl = $role == '3' ? $this->_userTableName_ext1 : $this->_userTableName_ext;
+        $record = $this->get_record($dbase_tbl)->where('user_id', $userID)->limit(1)->go();
+        if (!empty($record)) {
+            $response = $record[0];
+        } else {
+            $response = false;
+        }
+        return $response;
+    }
+
+    // /**
+    //  *
+    //  * Class constructor initialization to set the class
+    //  * properties and connection to the database
+    //  *
+    //  * @access Private
+    //  * @return Bool
+    //  * @param Null
+    //  *
+    //  **/
+    // private function _account_suspended($ID = null)
+    // {
+    //     if (empty($ID)) {
+    //         $ID = (!empty($this->userID)) ? $this->userID : $this->username;
+    //     }
+    //     $response = $this->get_record($this->_userTableName)->where('user_id', $data['user_id'])->and_where('org_id', $data['org_id'])->and_where('is_active', 0)->go();
+
+    //     return ($response === true) ? true : false;
+    // }
+
+    // /**
+    //  *
+    //  * Class constructor initialization to set the class
+    //  * properties and connection to the database
+    //  *
+    //  * @access Private
+    //  * @return Bool
+    //  * @param Null
+    //  *
+    //  **/
+    // private function _add_login_attempt($value = 0, $action = 'update')
+    // {
+    //     $loginAttempts = 0;
+    //     $loginAttempts = $value + 1;
+
+    //     switch ($action) {
+    //         case 'update':
+
+    //             if ($loginAttempts == 3) {
+
+    //                 $updateData = array(
+    //                     "user_attempts" => $loginAttempts,
+    //                     "user_datetime" => $this->lastLogin,
+    //                 );
+
+    //             } else {
+
+    //                 $updateData = array(
+    //                     "user_attempts" => $loginAttempts,
+    //                 );
+
+    //             }
+
+    //             $updated = $this->db->update(
+    //                 $this->failedTableName,
+    //                 $updateData,
+    //                 "WHERE `user_ipaddrs` = '" . $this->db->escape($this->ipaddress) . "' AND `user_name` = '" . $this->db->escape($this->username) . "'"
+    //             );
+
+    //             return ($updated) ? true : false;
+
+    //             break;
+    //         case 'insert':
+
+    //             $hostName = (gethostname()) ? gethostname() : '0';
+    //             $hostIP = (gethostbyname($hostName)) ? gethostbyname($hostName) : '0';
+
+    //             $insertData = array(
+    //                 "user_ipaddrs" => $this->ipaddress,
+    //                 "user_hostip" => $hostIP,
+    //                 "user_hostname" => $hostName,
+    //                 "user_name" => $this->username,
+    //                 "user_attempts" => $loginAttempts,
+    //                 "user_datetime" => $this->lastLogin,
+    //             );
+
+    //             $inserted = $this->db->insert($this->failedTableName, $insertData);
+
+    //             return ($inserted) ? true : false;
+
+    //             break;
+    //         default:
+    //             return false;
+    //             break;
+    //     }
+    // }
+
+    // /**
+    //  *
+    //  * Class constructor initialization to set the class
+    //  * properties and connection to the database
+    //  *
+    //  * @access Private
+    //  * @return Bool
+    //  * @param Null
+    //  *
+    //  **/
+    // private function _failed_login($systemAttempts = null)
+    // {
+    //     $query = $this->db->query("
+    //         SELECT *
+    //         FROM `" . $this->failedTableName . "`
+    //         WHERE `user_ipaddrs` = '" . $this->db->escape($this->ipaddress) . "'
+    //         AND `user_name` = '" . $this->db->escape($this->username) . "'
+    //       ");
+
+    //     if ($query) {
+
+    //         if ($this->db->num_rows() == 0) {
+
+    //             $this->add_login_attempt(0, 'insert');
+
+    //         } else {
+
+    //             if ($fetch = $this->db->fetch()) {
+
+    //                 if ($this->account_suspended() === false) {
+
+    //                     $loginAttempts = (!empty($systemAttempts) || $systemAttempts > 0) ? $systemAttempts : LOGIN_ATTEMPTS;
+
+    //                     if ($fetch->user_attempts >= $loginAttempts) {
+
+    //                         $this->update_login('suspend');
+
+    //                     } else {
+
+    //                         $this->add_login_attempt($fetch->user_attempts);
+
+    //                     }
+
+    //                 } else {
+
+    //                     $this->add_login_attempt($fetch->user_attempts);
+
+    //                 }
+
+    //             }
+
+    //         }
+    //         return false;
+    //     }
+    //     return false;
+    // }
+
+    // /**
+    //  *
+    //  * Class constructor initialization to set the class
+    //  * properties and connection to the database
+    //  *
+    //  * @access Private
+    //  * @return Bool
+    //  * @param Null
+    //  *
+    //  **/
+    // private function _is_data_valid()
+    // {
+    //     return (preg_match("/^[a-zA-z0-9._-]{" . $_passwordLength . ",15}$/", $this->username) && preg_match("/^[a-zA-z0-9|{}().@$]{" . $_passwordLength . ",30}$/", $this->password)) ? true : false;
+    // }
+
+    // /**
+    //  *
+    //  * Check new password and confirm password credentials
+    //  *
+    //  * @access Private
+    //  * @return Bool
+    //  * @param Null
+    //  *
+    //  **/
+    // private function _set_cookie()
+    // {
+    //     $value = $this->_username . '*' . $this->_encryptPassword . '*';
+    //     $cookieValue = $this->db->_encrypt(($value . ' ' . $_SERVER['HTTP_USER_AGENT']), ENCRYPT);
+    //     setcookie($this->_cookieName, $cookieValue, time() + $this->_cookieTime, $this->_cookiePath);
+    // }
+
+    // private function check_attempts()
+    // {
+    //     $query = $this->db->query("
+    //         SELECT *
+    //         FROM `" . $this->failedTableName . "`
+    //         WHERE `user_name` = '" . $this->db->escape($this->username) . "'
+    //         AND `user_ipaddrs` = '" . $this->db->escape($this->ipaddress) . "'
+    //         AND `user_attempts` > 0
+    //       ");
+
+    //     if ($this->db->numRows > 0) {
+    //         return true;
+    //     }
+    //     return false;
+    // }
+
+    // /**
+    //  *
+    //  * Check new password and confirm password credentials
+    //  *
+    //  * @access Private
+    //  * @return Bool
+    //  * @param Null
+    //  *
+    //  **/
+    // private function check_password($password, $confirmPassword)
+    // {
+    //     try {
+
+    //         if (!preg_match("/^[a-zA-z0-9|{}().@$]{" . $_passwordLength . ",30}$/", $password)) {
+    //             throw new Exception('invalid_password_character');
+    //         }
+
+    //         if ($password != $confirmPassword) {
+    //             throw new Exception('password_match');
+    //         }
+
+    //     } catch (Exception $e) {
+    //         $this->errors[] .= $e->getMessage();
+    //         return false;
+    //     }
+    //     return true;
+    // }
+
+    // // CHANGE PASSWORD; either via admin, password reset, and user prompt
+    // public function change_password($data, $action = 'reset')
+    // {
+    //     if (isset($data['token'])) {
+    //         $this->token = $this->db->filter($data['token']);
+    //     }
+
+    //     $userID = (!empty($data['uid'])) ? $data['uid'] : $this->userID;
+
+    //     if (!$this->load_user_data($userID)) {
+    //         return false;
+    //     }
+
+    //     $encryptOldPassword = $this->db->_encrypt($data['oldpassword'], ENCRYPT);
+
+    //     if (!$this->is_token_valid()) {
+    //         $this->errors[] .= 'invalid_submission';
+    //         return false;
+    //     } else if (is_array($data) && ($action == 'user' && empty($data['oldpassword']))) {
+    //         $this->errorInput['oldpassword'] = '1';
+    //         $this->errors[] .= 'empty_old_password';
+    //         return false;
+    //     } else if ($action == 'user' and !$this->check_old_password($encryptOldPassword)) {
+    //         $this->errorInput['oldpassword'] = '1';
+    //         return false;
+    //     } else if (is_array($data) && (empty($data['newpassword']))) {
+    //         $this->errorInput['newpassword'] = '1';
+    //         $this->errors[] .= 'empty_new_password';
+    //         return false;
+    //     } else if (is_array($data) && (empty($data['confirmpassword']))) {
+    //         $this->errorInput['confirmpassword'] = '1';
+    //         $this->errors[] .= 'empty_confirm_password';
+    //         return false;
+    //     } else if (!$this->check_password($data['newpassword'], $data['confirmpassword'])) {
+    //         $this->errorInput['newpassword'] = '1';
+    //         $this->errorInput['confirmpassword'] = '1';
+    //         return false;
+    //     } else {
+
+    //         $encryptNewPassword = $this->db->_encrypt($data['newpassword'], ENCRYPT);
+
+    //         $branchID = $this->userData['user_branch_id'];
+
+    //         if (!empty($branchID)) {
+    //             $dbTable = $this->userTableName;
+    //             $whereClause = "WHERE `user_branch_id` = '" . $this->db->escape($branchID) . "' AND `user_id` = '" . $this->db->escape($userID) . "'";
+    //         } else {
+    //             $dbTable = $this->adminTableName;
+    //             $whereClause = "WHERE `user_id` = '" . $this->db->escape($userID) . "'";
+    //         }
+
+    //         if ($action == 'admin') {
+
+    //             $updateData = array(
+    //                 "user_pass" => $encryptNewPassword,
+    //                 "user_old_pass" => $encryptNewPassword,
+    //             );
+
+    //             $where = "WHERE `user_branch_id` = '" . $this->db->escape($branchID) . "'
+    //           AND `user_id` = '" . $this->db->escape($userID) . "'";
+
+    //         } else if ($action == 'reset') {
+
+    //             $updateData = array(
+    //                 "user_pass" => $encryptNewPassword,
+    //                 "user_auth_code" => "",
+    //                 "user_temp_pass" => "",
+    //             );
+
+    //         } else if ($action == 'user') {
+
+    //             $updateData = array(
+    //                 "user_pass" => $encryptNewPassword,
+    //             );
+
+    //         }
+
+    //         $updated = $this->db->update(
+    //             $dbTable,
+    //             $updateData,
+    //             $whereClause
+    //         );
+
+    //         if ($updated) {
+    //             $this->confirmation = 'password_changed';
+
+    //             if ($action == 'reset' || $action == 'user') {
+    //                 // $randEncrypt = $this->db->_encrypt( $this->db->code_generator( 60 ), ENCRYPT );
+    //                 $randEncrypt = $this->db->_encrypt('password_changed', ENCRYPT);
+    //                 $this->db->set_session($this->sessionName, $randEncrypt, 'sessionID');
+    //             }
+    //             return true;
+    //         } else {
+    //             return false;
+    //         }
+    //         $this->errors[] .= 'internal_db_update_error';
+    //     }
+    // }
+
+    // public function remove_user($query, $admin = false)
+    // {
+    //     if (is_admin() || is_superadmin()) {
+
+    //         $dbTable = ($admin == true) ? $this->adminTableName : $this->userTableName;
+
+    //         return $this->db->delete($dbTable, $query);
+    //     }
+    // }
+
+    // public function view_user($query, $admin = false)
+    // {
+    //     if (!empty($query)) {
+    //         if (substr(strtoupper(trim($query)), 0, 5) != 'WHERE') {
+    //             $where = " WHERE " . $query;
+    //         } else {
+    //             $where = " " . trim($query);
+    //         }
+    //     }
+
+    //     $dbTable = ($admin == true) ? $this->adminTableName : $this->userTableName;
+
+    //     $sql = $this->db->query("
+    //       SELECT *
+    //       FROM `" . $dbTable . "` " . $where . "
+    //     ");
+
+    //     if ($this->db->numRows == 0) {
+    //         return false;
+    //     }
+
+    //     $userData = $this->db->fetch_array();
+    //     return $userData;
+    // }
+
+    // /**
+    //  *
+    //  * Class constructor initialization to set the class
+    //  * properties and connection to the database
+    //  *
+    //  * @access Private
+    //  * @return Bool
+    //  * @param String $name -> Name of session
+    //  * @param String $ID -> Session key
+    //  *
+    //  **/
+    // // FORGET PASSWORD PROCESS START
+    // public function process_reset($data, $type = 'link')
+    // {
+    //     $this->password_reset($data, $type);
+    //     return $this->access;
+    // }
+
+    // // FORGET PASSWORD; authentication code validation & password update
+    // // $auth->update_reset_password( $authCode );
+    // public function update_reset_password($data)
+    // {
+    //     if ($this->is_authcode_valid($data)) {
+    //         $updateData = array(
+    //             "user_pass" => $this->userData[' user_temp_pass '],
+    //         );
+
+    //         $branchID = $this->userData['user_branch_id'];
+
+    //         if (!empty($branchID)) {
+    //             $dbTable = $this->userTableName;
+    //             $whereClause = "WHERE `user_branch_id` = '" . $this->db->escape($this->userData['user_branch_id']) . "' AND `user_id` = '" . $this->db->escape($this->userData['user_id']) . "'";
+    //         } else {
+    //             $dbTable = $this->adminTableName;
+    //             $whereClause = "WHERE `user_id` = '" . $this->db->escape($this->userData['user_id']) . "'";
+    //         }
+
+    //         $updated = $this->db->update(
+    //             $dbTable,
+    //             $updateData,
+    //             $whereClause
+    //         );
+    //         return true;
+    //     }
+    //     return false;
+    // }
+
+    // /**
+    //  *
+    //  * Class constructor initialization to set the class
+    //  * properties and connection to the database
+    //  *
+    //  * @access Private
+    //  * @return Bool
+    //  * @param String $name -> Name of session
+    //  * @param String $ID -> Session key
+    //  *
+    //  **/
+    // // Forget password email validation
+    // private function password_reset($data, $type = 'link')
+    // {
+    //     if (isset($data['token'])) {
+    //         $this->token = $this->db->filter($data['token']);
+    //     }
+
+    //     $this->access = false;
+
+    //     try {
+    //         if (!$this->is_token_valid()) {
+    //             throw new Exception('invalid_submission');
+    //         }
+
+    //         if (empty($data['email'])) {
+    //             throw new Exception('empty_reset');
+    //         }
+
+    //         if ($this->db->is_email_valid($data['email']) && !$this->check_user_email($data)) {
+    //             throw new Exception('email_not_found');
+    //         }
+
+    //         if (!$this->db->is_email_valid($data['email']) && !$this->check_user_email($data)) {
+    //             throw new Exception('user_not_found');
+    //         }
+
+    //         if ($type == 'link' && !$this->send_reset_link($data['email'])) {
+    //             throw new Exception('email_not_sent');
+    //         }
+
+    //         if ($type == 'password' && !$this->generate_new_password($data['email'])) {
+    //             throw new Exception('email_not_sent');
+    //         }
+
+    //     } catch (Exception $e) {
+    //         $this->errors[] .= $e->getMessage() . $this->userID;
+    //         return false;
+    //     }
+
+    // }
+
+    // /**
+    //  *
+    //  * Logout the current user
+    //  *
+    //  * @access Public
+    //  * @return Boolean
+    //  *
+    //  **/
+    // public function is_ip_address($ip)
+    // {
+    //     return preg_match('/^(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:[.](?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){3}$/', $ip);
+    // }
+
+    // /**
+    //  *
+    //  * Logout the current user
+    //  *
+    //  * @access Public
+    //  * @return Boolean
+    //  *
+    //  **/
+    // public function get_ip_address()
+    // {
+    //     $ipAddress = '';
+
+    //     foreach (array('HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_X_CLUSTER_CLIENT_IP', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR') as $key) {
+    //         if (array_key_exists($key, $_SERVER) === true) {
+    //             foreach (explode(',', $_SERVER[$key]) as $ip) {
+    //                 if (filter_var($ip, FILTER_VALIDATE_IP) !== false) {
+    //                     if ($this->is_ip_address($ip)) {
+    //                         $ipAddress = $ip;
+    //                     } else {
+    //                         $ipAddress = '0.0.0.0';
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     return $ipAddress;
+    // }
+
+/////////////////////////////////////////////////////////////
+}

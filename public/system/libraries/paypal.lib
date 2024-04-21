@@ -1,0 +1,276 @@
+<?php
+
+require_once FYNX_PUBLIC['system'] . 'libraries/helpers.lib';
+
+class Paypal
+{
+    /**
+     * The array of amadeus credentials and parameters.
+     *
+     * @var array
+     */
+    protected $params = [];
+
+    public function __construct($params = [
+        'client_id' => 'AareFIp3TyPxxkTE_PAGkPgpuyzGtCm2tFRlr-P_GecNZ4YVArl1z-nEIqRlgaWTRfojiXAuOuC8-kZJ',
+        'client_secret' => 'EKhEvD26YRPs2U1FZ7O9p_Oc6FDYXjbkhFUPRyLJf7zbEzYYIweq2p8oyU29POaz2Gwk5IpJI6zvHVCr',
+        // 'client_id' => 'AaztNu2zI3NefFP9rwR-3etxAEkyalTZRC29x-ePGbCFWykN1uTlGFRJqOca97ESrLBeLFwt0WL9Nhls',
+        // 'client_secret' => 'EKw4ulwqHSzt7Q0YxebHDecIMAyVe65pXQFPYcaXF3SsvgmlAh6STke07EHS3JXtmjkEWP7WDOrNClhH',
+        'OAuth' => false,
+        'email' => 'sb-u4kmd21433310@personal.example.com',
+        'environment' => 'test',
+        'pro_end_point' => 'https://api-m.paypal.com/',
+        'dev_end_point' => 'https://api-m.sandbox.paypal.com/',
+        'dev_end_point_web' => 'https://www.sandbox.paypal.com/cgi-bin/webscr',
+        'pro_end_point_web' => 'https://www.paypal.com/cgi-bin/webscr',
+    ]) {
+        $this->helpers = new Helpers;
+        $this->params = $params;
+        if (isset($this->params['environment']) && $this->params['environment'] == 'live') {
+            $this->end_point = $this->params['OAuth'] == true ? $this->params['pro_end_point'] : $this->params['pro_end_point_web'];
+        } else {
+            $this->end_point = $this->params['OAuth'] == true ? $this->params['dev_end_point'] : $this->params['dev_end_point_web'];
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Amadeus API Token
+    |--------------------------------------------------------------------------
+    |
+    | This function gets an API Token from Amadeus after providing credentials
+    |
+     */
+    public function payment_token()
+    {
+        if ($this->params['OAuth'] != true) {
+            $this->auth_error = array(
+                'code' => '777',
+                'subject' => 'Security Option',
+                'message' => 'Your Security Option should be set to True!',
+            );
+            return $this->auth_error;
+        }
+
+        $data = [
+            'grant_type' => 'client_credentials',
+            'client_id' => $this->params['client_id'],
+            'client_secret' => $this->params['client_secret'],
+        ];
+        $token_data = json_decode($this->helpers->proxy_request($this->end_point . 'v1/oauth2/token', $data, 'POST', ['OAuth']), true);
+        $this->token = isset($token_data['access_token']) ? $token_data['access_token'] : $token_data;
+        return $this;
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Build Payment Parameter
+    |--------------------------------------------------------------------------
+    |
+    | This function builds the payment parameters that would be passed to the
+    | Paypal API server.
+    |
+     */
+    public function build_payment_parameter($post_data = null)
+    {
+        if (isset($post_data) && !empty($post_data)) {
+            if (isset($post_data['currency_code']) && isset($post_data['amount']) && isset($post_data['item_number']) && isset($post_data['return'])) {
+                $this->payment_query = [
+                    "intent" => "CAPTURE",
+                    "purchase_units" => [
+                        [
+                            "items" => [
+                                [
+                                    "name" => "Convert Excel",
+                                    "description" => "Reference Number: " . $post_data['item_number'] . ", <br>Item Name: " . isset($post_data['item_name']) ? $post_data['item_name'] : 'item-' . date('YmdHi'),
+                                    "quantity" => "1",
+                                    "unit_amount" => [
+                                        "currency_code" => $post_data['currency_code'],
+                                        "value" => $post_data['amount'],
+                                    ],
+                                ],
+                            ],
+                            "amount" => [
+                                "currency_code" => $post_data['currency_code'],
+                                "value" => $post_data['amount'],
+                                "breakdown" => [
+                                    "item_total" => [
+                                        "currency_code" => $post_data['currency_code'],
+                                        "value" => $post_data['amount'],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                    "application_context" => [
+                        "shipping_preference" => "NO_SHIPPING",
+                        "return_url" => $post_data['return'],
+                        "cancel_url" => isset($post_data['cancel_return']) ? $post_data['cancel_return'] : null,
+                    ],
+                ];
+            } else {
+                $this->payment_query = [];
+            }
+        } else {
+            $this->payment_query = [];
+        }
+        return $this;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Paypal API Payment Initialisation
+    |--------------------------------------------------------------------------
+    |
+    | This function redirects transaction to Paypal API server, after
+    | providing correct authentication credentials. Note: the main variables
+    | to provide are item_number, item_name (optional), amount, return,
+    | currency_code (def:USD), cancel_return (optional) and notify_url (optional).
+    |
+     */
+    public function payment_initialize($post_data = null)
+    {
+        if (isset($this->auth_error)) {return $this->auth_error;}
+        if ($this->params['OAuth'] != true) {
+            if (is_null($post_data) || !isset($post_data)) {
+                $data = array(
+                    'code' => '600',
+                    'subject' => 'Empty/Null POST',
+                    'message' => 'Posted data array is Null, Empty or Invalid!',
+                );
+                return $data;
+            }
+            if (!isset($post_data['item_name']) || !isset($post_data['amount']) || !isset($post_data['return'])) {
+                $data = array(
+                    'code' => '601',
+                    'subject' => 'Invalid Parameter',
+                    'message' => 'Posted data array has an Invalid Parameter!',
+                );
+                return $data;
+            }
+
+            $post_data = [
+                'cmd' => '_xclick',
+                'business' => $this->params['email'],
+                'item_number' => isset($post_data['item_number']) ? $post_data['item_number'] : date('YmdHi'),
+                'item_name' => $post_data['item_name'],
+                'amount' => $post_data['amount'],
+                'currency_code' => isset($post_data['currency_code']) ? $post_data['currency_code'] : 'USD',
+                'return' => $post_data['return'],
+                'cancel_return' => isset($post_data['cancel_return']) ? $post_data['cancel_return'] : null,
+                'notify_url' => isset($post_data['notify_url']) ? $post_data['notify_url'] : null,
+            ];
+
+            header("Location: " . $this->end_point . "?" . http_build_query($post_data));
+        } else {
+
+            // using oauth method to process payment
+            if (empty($this->payment_query) || !isset($this->payment_query)) {
+                $data = array(
+                    'code' => '600',
+                    'subject' => 'Empty/Null POST',
+                    'message' => 'Posted data array is Null, Empty or Missing Parameter!',
+                );
+                return $data;
+            }
+
+            $headers = [
+                "Access-Control-Allow-Origin: *",
+                "Content-Type: application/json",
+                "Authorization: Bearer " . $this->token,
+            ];
+            $ini_response = json_decode($this->helpers->proxy_request($this->end_point . 'v2/checkout/orders', json_encode($this->payment_query), 'POST', $headers), true);
+
+            // redirect to authorisation url if initialisation == true
+            if (isset($ini_response['links'][1]['href'])) {
+                header('Location: ' . $ini_response['links'][1]['href']);
+            } else {
+                $data = array(
+                    'code' => '601',
+                    'subject' => 'Invalid Payment Details',
+                    'message' => 'Due to Incorrect Payment Details, Transaction could not be completed!',
+                );
+                return $data;
+            }
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Paypal Payment Verification
+    |--------------------------------------------------------------------------
+    |
+    | This function gets a response from Payspal API server named PayerID,
+    | after providing standard Paypal credentials.
+    |
+    |
+     */
+    public function payment_verify($response = null)
+    {
+        if (isset($this->auth_error)) {return $this->auth_error;}
+        if ($this->params['OAuth'] != true) {
+            if (isset($response['PayerID'])) {
+                $this->verify_response = $response;
+                return $this->verify_response;
+            }
+        } else {
+            if (is_null($response) || !isset($response)) {
+                $data = array(
+                    'code' => '602',
+                    'subject' => 'Invalid Reference Number',
+                    'message' => 'Reference number of Payment Transaction is Invalid!',
+                );
+                return $data;
+            }
+            if (!isset($response['token'])) {
+                $data = array(
+                    'code' => '603',
+                    'subject' => 'Invalid Token',
+                    'message' => 'Response Token from Payment Gateway is not Valid!',
+                );
+                return $data;
+            }
+
+            $headers = [
+                "Access-Control-Allow-Origin: *",
+                "Content-Type: application/json",
+                "Authorization: Bearer " . $this->token,
+            ];
+
+            $this->verify_response = json_decode($this->helpers->proxy_request($this->end_point . 'v2/checkout/orders/' . $response['token'] . '/capture', null, 'POST', $headers), true);
+            if (isset($this->verify_response['status']) && $this->verify_response['status'] == 'COMPLETED') {
+                return $this->verify_response;
+            }
+        }
+
+        $this->verify_response = array(
+            'code' => '603',
+            'subject' => 'Unsuccessful Verification ',
+            'message' => 'Payment Verification was not Successful',
+        );
+        return $this->verify_response;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Verification Successful
+    |--------------------------------------------------------------------------
+    |
+    | Output bool "true" or "false" after payment verification. Provide the
+    | value "details" if you want to see the response details other than boolean
+    | status.
+    |
+     */
+    public static function is_successful($details = null)
+    {
+        if ($details == 'details') {
+            return $this->verify_response;
+        } else {
+            if ($this->verify_response['code'] == '603') {
+                return false;
+            }
+            return true;
+        }
+    }
+}

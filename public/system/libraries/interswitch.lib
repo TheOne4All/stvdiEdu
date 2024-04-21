@@ -1,0 +1,155 @@
+<?php
+
+require_once FYNX_PUBLIC['system'] . 'libraries/helpers.lib';
+
+class Interswitch
+{
+    /**
+     * The array of amadeus credentials and parameters.
+     *
+     * @var array
+     */
+    protected $params = [];
+
+    public function __construct($params = [
+        'merchant_code' => 'MX145118',
+        'pay_item_id' => 'Default_Payable_MX145118',
+        'mac_key' => 'D3D1D05AFE42AD50818167EAC73C109168A0F108F32645C8B59E897FA930DA44F9230910DAC9E20641823799A107A02068F7BC0F4CC41D2952E249552255710F',
+        // 'client_id' => 'IKIA9CB283E7BA4F8BD3ECCFD815A1F13D8A744799C8',
+        // 'client_secret' => '6ybJVdQ5DA7cCJo',
+        'environment' => 'test',
+        'dev_end_point' => 'https://qa.interswitchng.com/collections/',
+        'pro_end_point' => 'https://newwebpay.interswitchng.com/collections/',
+        // 'pro_end_point_ver' => 'https://qa.interswitchng.com/collections/api/v1/gettransaction.json',
+    ]) {
+        $this->helpers = new Helpers;
+        $this->params = $params;
+        if (isset($this->params['environment']) && $this->params['environment'] == 'live') {
+            $this->end_point = $this->params['pro_end_point'];
+        } else {
+            $this->end_point = $this->params['dev_end_point'];
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Interswitch API Payment Initialisation
+    |--------------------------------------------------------------------------
+    |
+    | This function redirects transaction to Interswitch API server, after
+    | providing correct authentication credentials. Note: If you are
+    | providing $post_data array here, you do NOT need to initiate the
+    | amount, email and callback_url function setters.
+    |
+     */
+    public function payment_initialize($post_data = null)
+    {
+
+        if (is_null($post_data) || !isset($post_data)) {
+            $data = array(
+                'code' => '600',
+                'subject' => 'Empty/Null POST',
+                'message' => 'Posted data array is Null, Empty or Invalid!',
+            );
+            return $data;
+        }
+        if (!isset($post_data['txn_ref']) || !isset($post_data['amount']) || !isset($post_data['site_redirect_url'])) {
+            $data = array(
+                'code' => '601',
+                'subject' => 'Invalid Parameter',
+                'message' => 'Posted data array has an Invalid Parameter!',
+            );
+            return $data;
+        }
+
+        $post_data['merchant_code'] = $this->params['merchant_code'];
+        $post_data['pay_item_id'] = $this->params['pay_item_id'];
+        $post_data['product_id'] = $post_data['txn_ref'];
+        $post_data['hash'] = hash('sha512', $post_data['txn_ref'] . $post_data['product_id'] . $post_data['pay_item_id'] . $post_data['amount'] . $post_data['site_redirect_url'] . $this->params['mac_key']);
+
+        $ini_response = json_decode($this->helpers->proxy_request($this->end_point . 'w/pay', http_build_query($post_data), 'POSTMAN-P'), true);
+
+        var_dump($ini_response);exit();
+        // redirect to authorisation url if initialisation == true
+        if (isset($ini_response['links'][1]['href'])) {
+            header('Location: ' . $ini_response['links'][1]['href']);
+        } else {
+            $data = array(
+                'code' => '601',
+                'subject' => 'Invalid Payment Details',
+                'message' => 'Due to Incorrect Payment Details, Transaction could not be completed!',
+            );
+            return $data;
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Interswitch API Payment Verification
+    |--------------------------------------------------------------------------
+    |
+    | This function gets a response from Interswitch API server after providing
+    | correct authentication credentials, and pass the $reference value through the
+    | server again for verification. Note: if you are passing the $reference
+    | variable here, you do NOT need to initiate the reference function setter.
+    |
+     */
+    public function payment_verify($reference = null)
+    {
+        if (!empty($this->reference) && isset($this->reference)) {
+            $reference = $this->reference;
+        } else {
+            if (is_null($reference) || !isset($reference)) {
+                $data = array(
+                    'code' => '602',
+                    'subject' => 'Invalid Reference Number',
+                    'message' => 'Reference number of Payment Transaction is Invalid!',
+                );
+                return $data;
+            }
+        }
+        $thash = hash('sha512', $this->reference . $this->params['secret_key']);
+        $headers = [
+            "GET /HTTP/1.1",
+            "Host: " . $this->end_point,
+            "Accept: */* ",
+            "Accept-Language: en-us,en;q=0.5",
+            "Keep-Alive: 300",
+            "Connection: keep-alive",
+            "Hash: " . $thash,
+        ];
+
+        $this->verify_response = json_decode($this->helpers->proxy_request($this->end_point . 'verify/' . $reference . '/webpay/api/v1/gettransaction.json?', 'GET', $headers), true);
+        if (isset($this->verify_response['status']) && $this->verify_response['status'] == true) {
+            return $this->verify_response;
+        }
+        $this->verify_response = array(
+            'code' => '603',
+            'subject' => 'Unsuccessful Verification ',
+            'message' => 'Payment Verification was not Successful',
+        );
+        return $this->verify_response;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Verification Successful
+    |--------------------------------------------------------------------------
+    |
+    | Output bool "true" or "false" after payment verification. Provide the
+    | value "details" if you want to see the response details other than boolean
+    | status.
+    |
+     */
+    public static function is_successful($details = null)
+    {
+        if ($details == 'details') {
+            return $this->verify_response;
+        } else {
+            if ($this->verify_response['code'] == '603') {
+                return false;
+            }
+            return true;
+        }
+    }
+}

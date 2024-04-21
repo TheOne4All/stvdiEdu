@@ -1,0 +1,13 @@
+<?php
+
+class Pages extends Processor
+{
+    public function __construct($tenantId = null)
+    {}
+
+    public function index()
+    {
+        $this->show('resources/index');
+    }
+
+}

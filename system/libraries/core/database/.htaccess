@@ -1,0 +1,15 @@
+Options -Multiviews
+
+DirectoryIndex index.htm index.html index.php index.tpl
+
+# Make PHP code look like unknown types
+AddType application/x-httpd-php .tpl .hook .lib .dbs .tbl .cfg .class .hook .log .cch .funct
+
+RewriteEngine On 
+
+RewriteBase /GitHub/fynix.framework/public
+
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+
+RewriteRule ^(.+)$ index.php?url=$1 [QSA,L]

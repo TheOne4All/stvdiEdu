@@ -1,0 +1,151 @@
+<?php
+
+use PHPMailer\PHPMailer\PHPMailer;
+
+class Auth extends FynxUser
+{
+    public function __construct()
+    {
+        require_once FYNX_PUBLIC['system'] . 'libraries/phpmailer/src/PHPMailer.php';
+        require_once FYNX_PUBLIC['system'] . 'libraries/phpmailer/src/Exception.php';
+        require_once FYNX_PUBLIC['system'] . 'libraries/phpmailer/src/SMTP.php';
+        require_once FYNX_PUBLIC['system'] . 'libraries/helpers.lib';
+        require_once FYNX_PUBLIC['system'] . 'helpers/clusters.php';
+
+        $this->mail = new PHPMailer(true);
+        $this->helpers = new Helpers;
+        $this->clusters = new Clusters;
+        $this->user = new FynxUser;
+        $this->helpers->installer();
+    }
+
+    public function signin($tenantId = null)
+    {
+        $this->user->is_login() === true ? $this->redirect('dashboard') : null;
+        // is_null($tenantId) ? $this->redirect() : null;
+        if (is_null($tenantId)) {$tenantId = "ORG";}
+        $tenant_info = $this->get_record('fx_org', 'org_id,img,name')->where('org_id', $tenantId)->limit(1)->go();
+        empty($tenant_info) ? $this->redirect() : null;
+        $this->with('tenant_info', $tenant_info)->with('tenantId', $tenantId)->show('resources/auth/signin');
+    }
+
+    public function login()
+    {
+        $this->user->is_login() === true ? $this->redirect('dashboard') : null;
+        $response = $this->user->login_user($_POST);
+        if ($response === 'session_already_exist') {
+            $this->with('data', base64_encode(json_encode($_POST)))->show('resources/auth/exists');
+        } elseif ($response === true) {
+            $this->clusters->get_tenant($_POST['org_id']);
+            $this->redirect('dashboard');
+        } else {
+            $this->with('danger', 'Wrong Sign-in Credentials!')->redirect('auth/signin/' . $_POST['org_id']);
+        }
+    }
+
+    public function sessionexist()
+    {
+        $response = $this->user->process_session_exist((array) json_decode(base64_decode($_POST['data'])));
+        if ($response === true) {
+            $this->clusters->get_tenant(json_decode(base64_decode($_POST['data']))->org_id);
+            $this->redirect('dashboard');
+        } else {
+            $this->with('danger', 'Wrong Sign-in Credentials!')->redirect('auth/signin/' . json_decode(base64_decode($_POST['data']))->org_id);
+        }
+    }
+
+    public function signup()
+    {
+        $this->user->is_login() === true ? $this->redirect('dashboard') : null;
+        $this->show('resources/auth/signup');
+    }
+
+    public function register($send_email = '0', $auto_pwd = '1')
+    {
+        $this->user->is_login() === true ? $this->redirect('dashboard') : null;
+
+        // generate random password and embed in POST data
+        if ($auto_pwd === '1') {
+            $_POST['password'] = $this->random_str(12);
+        } else {
+            if (!isset($_POST['password']) && $auto_pwd === '0') {
+                $this->with('danger', 'Empty Password')->redirect('auth/signup/');
+            }
+        }
+        $response = $this->user->register_user($_POST);
+        if ($response === true) {
+
+            // send email confirmation
+            if ($send_email === '1') {
+                $email = [
+                    'from' => 'doNotReply@jencube.com',
+                    'fromName' => 'Jencube Team',
+                    'to' => $_POST['user_email'],
+                    'subject' => 'Authentication Credentials',
+                    'body' => '<strong>Login Credentials</strong><p></p>Username: ' . $_POST['user_email'] . '<br>Password: ' . $_POST['password'],
+                ];
+                $sent = $this->user->email_confirmation($email);
+                if ($sent === true) {
+                    $alert = 'success';
+                    $message = 'Confirmation E-mail Sent Successfully!';
+                } else {
+                    $alert = "danger";
+                    $message = 'E-mail Failure Delivery!';
+                }
+            } else {
+                $alert = "success";
+                $message = 'Account Sign-Up was Successful!';
+            }
+            if ($_POST['access'] != 3) {
+                $this->with($alert, $message)->redirect('auth/signin/' . $_POST['org_id']);
+            } else {
+                $this->with($alert, $message)->redirect('pages/' . $_POST['org_id']);
+            }
+        } else {
+            if ($_POST['access'] != 3) {
+                $this->with('danger', ucwords(str_replace('_', ' ', $response)))->redirect('auth/signup');
+            } else {
+                $this->with('danger', ucwords(str_replace('_', ' ', $response)))->redirect('pages/home');
+            }
+        }
+    }
+
+    public function signout($tenantId = null)
+    {
+        $user_role = isset($_SESSION['user_session']) ? $this->user->get_user_role($_SESSION['user_session']['user_id']) : null;
+        is_null($tenantId) || is_null($user_role) ? $this->redirect() : null;
+        if (isset($_GET['alert']) && $_GET['alert'] == 2) {
+            $this->user->unset_session();
+        } else {
+            $this->user->logout();
+        }
+        if (isset($_GET['alert'])) {
+            switch ($_GET['alert']) {
+                case '1':
+                    $notice = 'info';
+                    $message = "Your Session has Expired!";
+                    break;
+                case '2':
+                    $notice = 'danger';
+                    $message = "Connected from another Computer!";
+                    break;
+                case '3':
+                    $notice = 'info';
+                    $message = "Already logged out!";
+                    break;
+                case '4':
+                    $notice = 'info';
+                    $message = "Account Deactivated Successfully!";
+                    break;
+
+                default:
+                    $notice = 'success';
+                    $message = 'Signed-Out Successfully!';
+                    break;
+            }
+            $this->with($notice, $message)->redirect('auth/signin/' . $tenantId);
+        }
+        $this->with('success', 'Signed-Out Successfully!')->redirect('auth/signin/' . $tenantId);
+    }
+
+}

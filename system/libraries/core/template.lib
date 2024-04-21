@@ -1,0 +1,351 @@
+<?php
+
+// global $autoLoader;
+
+/**
+ *
+ * The Template class is a flexible libraby responsible for rendering
+ * all template pages, including modals and master page extension to
+ * other pages.
+ *
+ * @version:       2.04.16.24
+ * @package:       FYNX Framework
+ * @author:        Jencube Team
+ * @license:       http://opensource.org/licenses/gpl-license.php
+ *                 GNU General Public License (GPL)
+ * @copyright:     Copyright (c) 2024 - 2025 Jencube
+ * @github:        @deusex0 & @TheOne4All
+ * @filesource:    system/libraries/template.lib
+ *
+ **/
+
+require_once FYNX_SYSTEM['system'] . 'autoloader.php';
+require_once 'pagination.lib';
+require_once FYNX_PUBLIC['system'] . 'libraries/helpers.lib';
+require_once FYNX_PUBLIC['system'] . 'libraries/fpdf.lib';
+
+class Template extends Processor
+{
+    /**
+     *
+     * Path to Master Page
+     *
+     * @access protected
+     * @var string
+     *
+     **/
+    protected $master_path;
+
+    /**
+     *
+     * Path to Module/Selected Page
+     *
+     * @access protected
+     * @var string
+     *
+     **/
+    protected $file_path;
+
+    /**
+     *
+     * Array Object Passed to Page/URL
+     *
+     * @access protected
+     * @var array
+     *
+     **/
+    public $data;
+
+    /**
+     *
+     * Array Object Parameters of Modal
+     *
+     * @access protected
+     * @var array
+     *
+     **/
+    public $para;
+
+    /**
+     *
+     * Final Template Result to be Rendered
+     *
+     * @access protected
+     * @var object
+     *
+     **/
+    protected $output = null;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Class constructor
+    |--------------------------------------------------------------------------
+    |
+    | Class constructor initialization to set the Variables
+    |
+     */
+    public function __construct($template_name, $file_path = null, $data = null)
+    {
+        $this->file_path = $file_path;
+        $this->data = $data;
+        $this->template_name = $template_name;
+        $this->master_path = null;
+        $this->pagination = new FynxPagination();
+        $this->helpers = new Helpers;
+        $autoLoader = new Autoloader;
+        $helper_addons = ($autoLoader->load_files(FYNX_PUBLIC['system'] . 'helpers', 2));
+        foreach ($helper_addons as $key => $value) {
+            $this->{$key} = $value;
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Get Content In-Between
+    |--------------------------------------------------------------------------
+    |
+    | This will get the content in-between a delimeter.
+    |
+     */
+    protected function get_content_between($start, $end, $string)
+    {
+        $string = ' ' . $string;
+        $ini = strpos($string, $start);
+        if ($ini == 0) {
+            return '';
+        }
+
+        $ini += strlen($start);
+        $len = strpos($string, $end, $ini) - $ini;
+        return substr($string, $ini, $len);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Display Alert/Notification Messages
+    |--------------------------------------------------------------------------
+    |
+    | This helps display Alert/Notification Messages after an Action is
+    | performed. It is used after a Redirect Method.
+    |
+     */
+    public function alert($request = null)
+    {
+        if (!is_null($request)):
+            foreach ($request as $key => $value) {
+                if ($key == 'success' || $key == 'warning' || $key == 'danger' || $key == 'info'):
+                    $alert = 'bg-' . $key;
+                    echo '<div class="alert-display ' . $alert . '">' . $value . '</div>';
+                    unset($key);
+                endif;
+            } else :
+            return false;
+        endif;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Extend Master Template Layout
+    |--------------------------------------------------------------------------
+    |
+    | This function extends the Master Template Layout to
+    | other Template Layouts that would require it's features.
+    |
+     */
+    public function extend_template($master_path = null, $_content = null, $data = null)
+    {
+        $this->data = $data;
+        $this->master_content = $_content;
+        if (!is_null($this->data)) {
+            foreach ($this->data as $key => $value) {
+                ${$key} = $value;
+            }
+        }
+        if (!is_null($master_path) && file_exists(FYNX_PUBLIC['template'] . strtolower($master_path) . '.tpl')) {
+            require_once FYNX_PUBLIC['template'] . strtolower($master_path) . '.tpl';
+        } else {
+            require_once $this->master_content;
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Render Template Layout
+    |--------------------------------------------------------------------------
+    |
+    | This function renders or displays the selected Template Layout to
+    | the user.
+    |
+     */
+    public function output()
+    {
+        $this->file_path_content = file_get_contents($this->file_path);
+        if (strpos($this->file_path_content, '[begin-extend-template]') !== false) {
+            $this->master_path = $this->template_name . '/' . $this->get_content_between('[begin-extend-template]', '[end]', $this->file_path_content);
+        }
+        $this->extend_template($this->master_path, $this->file_path, $this->data);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Create Modal Layout
+    |--------------------------------------------------------------------------
+    |
+    | These set of function helps create FYNX Modal Layout of different
+    | types; Slide-Up, Stick-Up, Slide-Right and Fill-In.
+    |
+     */
+    public function modal($para = null, $key = null)
+    {
+        $this->para['header'] = (isset($para['header'])) ? $para['header'] : null;
+        $this->para['footer'] = (isset($para['footer'])) ? $para['footer'] : null;
+        $this->para['classlist'] = (isset($para['classlist'])) ? $para['classlist'] : null;
+        $this->para['size'] = (isset($para['size'])) ? $para['size'] : 'md';
+        $this->para['url'] = (isset($para['url'])) ? $para['url'] : null;
+        $this->para['file'] = (isset($para['file'])) ? FYNX_PUBLIC['template'] . $_SESSION['tenant']['default_template'] . '/resources/' . $para['file'] : null;
+        $this->para['body'] = (isset($para['body'])) ? $para['body'] : null;
+        $this->para['xbutton'] = (isset($para['xbutton'])) ? $para['xbutton'] : '&times;';
+        $this->para['data'] = (isset($para['data'])) ? $para['data'] : null;
+        $this->para['hidden'] = (isset($para['hidden'])) ? $para['hidden'] : null;
+        $this->para['cancel'] = (isset($para['cancel'])) ? $para['cancel'] : null;
+        if (!isset($para['name']) || empty($para['name'])) {
+            die("<h5>Modal has no 'Name' Parameter!</h5>");
+        } else {
+            $this->para['name'] = str_replace(' ', '_', $para['name']) . $key;
+        }
+        if (isset($para['classlist']) && !empty($para['classlist'] && is_array($para['classlist']))) {
+            $classList = '';
+            foreach ($para['classlist'] as $classValue) {
+                $classList = $classList . ' ' . $classValue;
+            }
+            $this->para['classlist'] = $classList;
+        } else {
+            $this->para['classlist'] = null;
+        }
+        return $this;
+    }
+
+    public function modal_hidden_field($field = null, $value = null)
+    {
+        if (!is_null($field) && is_string($field) && !is_null($value)) {
+            if (is_array($value) || is_object($value)) {
+                $value = base64_encode($value);
+            }
+            $this->para['hidden'] = $this->para['hidden'] . "<input type='hidden' name='" . $field . "' value='" . $value . "'>";
+        } else {
+            $this->para['hidden'] = null;
+        }
+        return $this;
+    }
+
+    public function modal_data($name = null, $data = null)
+    {
+        if (!is_null($name) && is_string($name) && !is_null($data)) {
+            $this->para['data'][$name] = $data;
+        }
+        return $this;
+    }
+
+    public function modal_end($arr = [])
+    {
+        switch ($this->para['classlist']) {
+            case strpos($this->para['classlist'], 'fill-in') !== false:
+                echo '<div class="modal fade' . $this->para['classlist'] . '" id="' . $this->para['name'] . '" tabindex="-1" role="dialog" aria-hidden="true">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">' . $this->para['xbutton'] . '</button>
+                    <div class="modal-dialog modal-' . $this->para['size'] . '">
+                        <div class="modal-content">
+                            <div class="modal-header">' . $this->para['header'] . '</div>
+                            <div class="modal-body">';
+                echo !empty($this->para['url']) ? '<form id="form_' . $this->para['name'] . '" name="form_' . $this->para['name'] . '" method="POST" enctype="multipart/form-data" action="' . $this->para['url'] . '">' : null;
+                echo !empty($this->para['hidden']) ? $this->para['hidden'] : null;
+                !empty($this->para['data']) ? extract($this->para['data']) : null;
+                !empty($arr) ? extract($arr) : null;
+                if (!is_null($this->para['file'])) {
+                    include $this->para['file'];
+                } else {
+                    echo $this->para['body'];
+                }
+                echo !empty($this->para['url']) ? '</form>' : null;
+                echo '</div><div class="modal-footer">' . $this->para['footer'] . '</div></div></div></div>';
+                break;
+
+            case strpos($this->para['classlist'], 'stick-up') !== false:
+                echo '<div class="modal fade' . $this->para['classlist'] . '" id="' . $this->para['name'] . '" tabindex="-1" role="dialog" aria-hidden="true">
+                    <div class="modal-dialog modal-' . $this->para['size'] . '">
+                        <div class="modal-content">
+                            <div class="modal-header clearfix text-left">
+                                <button aria-label="" type="button" class="close" data-dismiss="modal" aria-hidden="true">' . $this->para['xbutton'] . '</button>
+                                ' . $this->para['header'] . '</div>
+                            <div class="modal-body">';
+                echo !empty($this->para['url']) ? '<form id="form_' . $this->para['name'] . '" name="form_' . $this->para['name'] . '" method="POST" enctype="multipart/form-data" action="' . $this->para['url'] . '">' : null;
+                echo !empty($this->para['hidden']) ? $this->para['hidden'] : null;
+                !empty($this->para['data']) ? extract($this->para['data']) : null;
+                !empty($arr) ? extract($arr) : null;
+                if (!is_null($this->para['file'])) {
+                    include $this->para['file'];
+                } else {
+                    echo $this->para['body'];
+                }
+                echo !empty($this->para['url']) ? '</form>' : null;
+                echo '</div></div></div></div>';
+                break;
+
+            case strpos($this->para['classlist'], 'slide-right') !== false:
+                echo '<div class="modal fade' . $this->para['classlist'] . '" id="' . $this->para['name'] . '" tabindex="-1" role="dialog" aria-hidden="true">
+                    <div class="modal-dialog modal-' . $this->para['size'] . '">
+                        <div class="modal-content-wrapper">
+                            <div class="modal-content">
+                                <button aria-label="" type="button" class="close" style="padding-top:10px;" data-dismiss="modal" aria-hidden="true">' . $this->para['xbutton'] . '</button>
+                                <div class="container-xs-height full-height">
+                                    <div class="row-xs-height">
+                                        <div class="modal-body col-xs-height col-middle text-center">';
+                echo !empty($this->para['url']) ? '<form id="form_' . $this->para['name'] . '" name="form_' . $this->para['name'] . '" method="POST" enctype="multipart/form-data" action="' . $this->para['url'] . '">' : null;
+                echo !empty($this->para['hidden']) ? $this->para['hidden'] : null;
+                !empty($this->para['data']) ? extract($this->para['data']) : null;
+                !empty($arr) ? extract($arr) : null;
+                if (!is_null($this->para['file'])) {
+                    include $this->para['file'];
+                } else {
+                    echo $this->para['body'];
+                }
+                echo !empty($this->para['url']) ? '</form>' : null;
+                echo '</div></div></div></div></div></div></div>';
+                break;
+
+            case strpos($this->para['classlist'], 'slide-up') !== false:
+                echo '<div class="modal fade' . $this->para['classlist'] . '" id="' . $this->para['name'] . '" tabindex="-1" role="dialog" aria-hidden="false">
+                    <div class="modal-dialog modal-' . $this->para['size'] . '">
+                        <div class="modal-content-wrapper">
+                            <div class="modal-content">
+                            <div class="modal-header clearfix text-left">
+                                <button aria-label="" type="button" class="close" data-dismiss="modal" aria-hidden="true">' . $this->para['xbutton'] . '</button>
+                                ' . $this->para['header'] . '</div>
+                                <div class="modal-body">';
+                echo !empty($this->para['url']) ? '<form id="form_' . $this->para['name'] . '" name="form_' . $this->para['name'] . '" method="POST" enctype="multipart/form-data" action="' . $this->para['url'] . '">' : null;
+                echo !empty($this->para['hidden']) ? $this->para['hidden'] : null;
+                !empty($this->para['data']) ? extract($this->para['data']) : null;
+                !empty($arr) ? extract($arr) : null;
+                if (!is_null($this->para['file'])) {
+                    include $this->para['file'];
+                } else {
+                    echo $this->para['body'];
+                }
+                echo !empty($this->para['url']) ? '</form>' : null;
+                echo '</div></div></div></div></div>';
+                break;
+
+            default:
+                echo '<div class="modal fade' . $this->para['classlist'] . '" id="' . $this->para['name'] . '" tabindex="-1" role="dialog" aria-hidden="true">';
+                echo !empty($this->para['hidden']) ? $this->para['hidden'] : null;
+                !empty($this->para['data']) ? extract($this->para['data']) : null;
+                !empty($arr) ? extract($arr) : null;
+                if (!is_null($this->para['file'])) {
+                    include $this->para['file'];
+                } else {
+                    echo $this->para['body'];
+                }
+                echo '</div>';
+                break;
+        }
+    }
+}

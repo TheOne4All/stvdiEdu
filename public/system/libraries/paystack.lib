@@ -1,0 +1,200 @@
+<?php
+
+require_once FYNX_PUBLIC['system'] . 'libraries/helpers.lib';
+
+class Paystack
+{
+    /**
+     * The array of amadeus credentials and parameters.
+     *
+     * @var array
+     */
+    protected $params = [];
+
+    public function __construct($params = [
+        'secret_key' => 'sk_test_a4b925104c5658af8f85fb93db4c9fbdbd754c8f',
+        'environment' => 'test',
+        'dev_end_point' => 'https://api.paystack.co/transaction/',
+        'pro_end_point' => 'https://api.paystack.co/transaction/',
+    ]) {
+        $this->helpers = new Helpers;
+        $this->params = $params;
+        if (isset($this->params['environment']) && $this->params['environment'] == 'live') {
+            $this->end_point = $this->params['pro_end_point'];
+        } else {
+            $this->end_point = $this->params['dev_end_point'];
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Set amount
+    |--------------------------------------------------------------------------
+    |
+    | Set value for amount
+    |
+     */
+    public static function amount($email)
+    {
+        $this->amount = $amount;
+        return $this;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Set Email
+    |--------------------------------------------------------------------------
+    |
+    | Set value for email
+    |
+     */
+    public static function email($email)
+    {
+        $this->email = $email;
+        return $this;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Set Callback URL
+    |--------------------------------------------------------------------------
+    |
+    | Set value for callback URL
+    |
+     */
+    public static function callback_url($callback_url)
+    {
+        $this->callback_url = $callback_url;
+        return $this;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Paystack API Payment Initialisation
+    |--------------------------------------------------------------------------
+    |
+    | This function redirects transaction to Paystack API server, after
+    | providing correct authentication credentials. Note: If you are
+    | providing $post_data array here, you do NOT need to initiate the
+    | amount, email and callback_url function setters.
+    |
+     */
+    public function payment_initialize($post_data = null)
+    {
+        if (isset($this->email) && isset($this->amount) && isset($this->callback_url) && !empty($this->email) && !empty($this->amount) && !empty($this->callback_url)) {
+            $post_data = [
+                'email' => $this->email,
+                'amount' => $this->amount,
+                'callback_url' => $this->callback_url,
+            ];
+        } else {
+            if (!isset($post_data) || is_null($post_data)) {
+                $data = array(
+                    'code' => '600',
+                    'subject' => 'Invalid Post Details',
+                    'message' => 'Details to be Posted is Null or Invalid!',
+                );
+                return $data;
+            }
+        }
+
+        $headers = [
+            "Access-Control-Allow-Origin: *",
+            "Content-Type: application/json",
+            "Authorization: Bearer " . $this->params['secret_key'],
+        ];
+        $ini_response = json_decode($this->helpers->proxy_request($this->end_point . 'initialize', json_encode($post_data), 'POST', $headers), true);
+
+        // redirect to authorisation url if initialisation == true
+        if (isset($ini_response['data']['authorization_url'])) {
+            header('Location: ' . $ini_response['data']['authorization_url']);
+        } else {
+            $data = array(
+                'code' => '601',
+                'subject' => 'Invalid Payment Details',
+                'message' => 'Due to Incorrect Payment Details, Transaction could not be completed!',
+            );
+            return $data;
+        }
+
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Set Reference
+    |--------------------------------------------------------------------------
+    |
+    | Provide value for reference id from the payment initialization response
+    |
+     */
+    public static function reference($reference)
+    {
+        $this->reference = $reference;
+        return $this;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Paystack API Payment Verification
+    |--------------------------------------------------------------------------
+    |
+    | This function gets a response from Paystack API server after providing
+    | correct authentication credentials, and pass the $reference value through the
+    | server again for verification. Note: if you are passing the $reference
+    | variable here, you do NOT need to initiate the reference function setter.
+    |
+     */
+    public function payment_verify($response = null)
+    {
+        if (!empty($this->reference) && isset($this->reference)) {
+            $reference = $this->reference;
+        } else {
+            if (!isset($response['reference']) || is_null($response['reference'])) {
+                $data = array(
+                    'code' => '602',
+                    'subject' => 'Invalid Reference Number',
+                    'message' => 'Reference number of Payment Transaction is Invalid!',
+                );
+                return $data;
+            }
+        }
+        $headers = [
+            "Access-Control-Allow-Origin: *",
+            "Accept: application/json",
+            "Authorization: Bearer " . $this->params['secret_key'],
+        ];
+
+        $this->verify_response = json_decode($this->helpers->proxy_request($this->end_point . 'verify/' . rawurlencode($response['reference']), null, 'POST', $headers), true);
+        if (isset($this->verify_response['status']) && $this->verify_response['status'] == true) {
+            return $this->verify_response;
+        }
+        $this->verify_response = array(
+            'code' => '603',
+            'subject' => 'Unsuccessful Verification ',
+            'message' => 'Payment Verification was not Successful',
+        );
+        return $this->verify_response;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Verification Successful
+    |--------------------------------------------------------------------------
+    |
+    | Output bool "true" or "false" after payment verification. Provide the
+    | value "details" if you want to see the response details other than boolean
+    | status.
+    |
+     */
+    public static function is_successful($details = null)
+    {
+        if ($details == 'details') {
+            return $this->verify_response;
+        } else {
+            if ($this->verify_response['code'] == '603') {
+                return false;
+            }
+            return true;
+        }
+    }
+}

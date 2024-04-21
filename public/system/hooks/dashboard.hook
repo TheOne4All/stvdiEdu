@@ -1,0 +1,39 @@
+<?php
+
+class Dashboard extends Processor
+{
+
+    public function __construct()
+    {
+        $this->user = new FynxUser;
+        $this->user->is_idle() === true ? $this->with('alert', 1)->redirect('auth/signout/' . $_SESSION['user_session']['org_id']) : null;
+        $this->user->is_logout() === true ? $this->with('alert', 3)->redirect('auth/signout/' . $_SESSION['user_session']['org_id']) : null;
+        $this->user->is_login() !== true && $this->user->is_idle() !== true ? $this->with('alert', 2)->redirect('auth/signout/' . $_SESSION['user_session']['org_id']) : null;
+    }
+
+    public function index()
+    {
+        $_SESSION['user_session']['user_role'] = $this->user->get_user_role($_SESSION['user_session']['user_id']);
+        $user_data = $this->user->get_user_data($_SESSION['user_session']['user_id'], $_SESSION['user_session']['user_role']);
+        $_SESSION['user_session']['firstname'] = $user_data['firstname'];
+        $_SESSION['user_session']['lastname'] = $user_data['lastname'];
+        $_SESSION['user_session']['phone'] = $user_data['phone'];
+        $_SESSION['user_session']['img'] = $user_data['img'];
+        // $_SESSION['user_session']['company'] = $user_data['company'];
+        $_SESSION['user_session']['address'] = $user_data['address'];
+        // $_SESSION['user_session']['country'] = $user_data['country'];
+
+        switch ($_SESSION['user_session']['user_role']) {
+            case '1':
+                $this->show('resources/dashboard/whm');
+                break;
+            case '3':
+                $this->show('resources/dashboard/index');
+                break;
+
+            default:
+                $this->show('resources/dashboard/admin');
+                break;
+        }
+    }
+}

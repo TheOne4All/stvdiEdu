@@ -1,0 +1,104 @@
+<?php
+
+/**
+*
+* Decription MySQLi
+*
+* @version: 3.12.19
+* @package Fynix Framework
+* @author: Jencube Team
+* @license: http://opensource.org/licenses/gpl-license.php
+* GNU General Public License (GPL)
+* @copyright: Copyright (c) 2013 - 2018 Jencube
+* @twitter: @deusex0 & @One_Oracle
+* @filesource system/database/mysqliDB.lib
+*
+**/
+
+class MySQLi_ {
+
+    private $_conn;
+
+    private $_DBUsername ='root';
+
+    private $_DBPassword;
+
+    private $_DBName;
+
+    private $_DBHost = 'localhost';
+
+    private $_DBPort = '3360';
+
+    private $_DBCollate = 'utf8_general_ci';
+
+    private $_DBCharset = 'utf8';
+
+    private $_remote = FALSE;
+
+    private $_query;
+
+    private $_sqlQuery;
+
+    private $_closeQuery = TRUE;
+
+    public $QueryCount = 0;
+
+    private $_DBShowErrors = TRUE;
+
+    public $DBErrorMsg;
+
+
+    
+    public function __construct( $config ){
+        $this->_Remote       =  ( isset( $config['remote'] ) )      ?   $config['remote']       :   $this->_remote;
+        $this->_DBPort       =  ( isset( $config['db_port'] ) )     ?   $config['db_port']      :   $this->_DBPort;
+        $this->_DBUsername   =  ( isset( $config['db_user'] ) )     ?   $config['db_user']      :   $this->_DBUsername;
+        $this->_DBPassword   =  ( isset( $config['db_pass'] ) )     ?   $config['db_pass']      :   '';
+        $this->_DBName       =  ( isset( $config['db_name'] ) )     ?   $config['db_name']      :   '';
+        $this->_DBHost       =  ( isset( $config['db_host'] ) )     ?   $config['db_host']      :   $this->_DBHost;
+        $this->_DBCharset    =  ( isset( $config['db_charset'] ) )  ?   $config['db_charset']   :   $this->_DBCharset;
+        $this->_DBCollate    =  ( isset( $config['db_collate'] ) )  ?   $config['db_collate']   :   $this->_DBCollate;
+        $this->_DBShowErrors =  ( isset( $config['db_show_errors'] ) )?   TRUE    :   FALSE;
+
+        $this->connect();
+        
+    }
+
+    private function connect(){
+        if ( !$this->_remote ) {
+            $this->_conn = @mysqli_connect( $this>_DBHost, $this->_DBUsername, $this->_DBPassword, $this->_DBName );
+        } else {
+            $this->_conn = @mysqli_connect( $this>_DBHost . ':' . $this->_port, $this->_DBUsername, $this->_DBPassword, $this->_DBName );
+        }
+
+        if ( $this->_DBShowErrors ) {
+            if ( @mysqli_connect_errno() ) {
+                $this->DBErrorsMsg = @mysqli_connect_error();
+                exit();
+            }
+
+        }
+
+    }
+
+    public function query( $SQL = NULL ){
+        if ( ! $this->_ )
+        // $this
+        $this->_sqlQuery = ( ! is_null( $SQL ) ) ? $SQL : $this->_sqlQuery;
+        $this->_query = @mysqli_query( $this->_conn, $this->_sqlQuery );
+
+    }
+
+    public function select_db(){
+
+    }
+
+    private function error(){
+
+    }
+
+    private function close_db(){
+
+    }
+    
+}
