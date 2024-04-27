@@ -7,7 +7,7 @@
             data-src-retina="<?=FYNX_PUBLIC['template_url']?>default/assets/img/logo_2x.png" width="78" height="22">
         <h3>Sign-Up an Account</h3>
         <p>
-            Create a pages account. If you have a facebook account, log into it for this process. Sign in with <a
+            Create a Stvdi account. If you have a facebook account, log into it for this process. Sign in with <a
                 href="#" class="text-info">Facebook</a> or <a href="#" class="text-info">Google</a>
         </p>
         <form id="form-register" class="p-t-15" role="form" method="POST"

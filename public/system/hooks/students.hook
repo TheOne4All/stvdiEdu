@@ -11,10 +11,34 @@ class Students extends Processor
         $this->user->is_login() !== true && $this->user->is_idle() !== true ? $this->with('alert', 2)->redirect('auth/signout/' . $_SESSION['user_session']['org_id']) : null;
     }
 
+    public function process_request(string $method,  ? string $request) : void
+    {
+        empty($request) ? $this->process_collection_request($method) : $this->process_resource_request($method, $request);
+    }
+
+    private function process_resource_request(string $method, string $request): void
+    {
+        echo "it is resources request";
+    }
+
+    private function process_collection_request(string $method): void
+    {
+        switch ($method) {
+            case 'GET':
+                $allStudents = $this->get_record('fx_person')->where('org_id', 'BIU')->go();
+                var_dump(json_encode($allStudents));
+                break;
+
+            default:
+                # code...
+                break;
+        }
+    }
+
     public function index($currentPage = 1, $entry = null)
     {
-        if (!empty($entry)) {$_SESSION['tenant']['default_row_per_page'] = (int) $entry;}
-        $filter_array = 'admission_no, firstname, lastname, middlename, address, email, phone, gender, category_id, user_id, rfid_code, created_at';
+        if (!is_null($entry)) {$_SESSION['tenant']['default_row_per_page'] = $entry;}
+        $filter_array = 'admission_no, firstname, lastname, middlename, address, email, phone, gender, category_id, user_id, rfid_code, is_active, created_at, disabled_at';
         if (isset($_POST) && !empty($_POST)) {
             extract($_POST);
             $_SESSION['search_filter'] = [
@@ -23,7 +47,7 @@ class Students extends Processor
         }
         $allStudents = $this->get_record('fx_person', $filter_array);
         !isset($_SESSION['search_filter']['search_table']) || $_SESSION['search_filter']['search_table'] == null ? $allStudents->search('') : $allStudents->search($_SESSION['search_filter']['search_table']);
-        $allStudents = $allStudents->and_where('org_id', $_SESSION['user_session']['org_id'])->order_by('created_at')->limit($_SESSION['tenant']['default_row_per_page'], ($currentPage - 1) * $_SESSION['tenant']['default_row_per_page'])->go();
+        $allStudents = $allStudents->and_where('org_id', $_SESSION['user_session']['org_id'])->order_by('created_at')->limit((int) $_SESSION['tenant']['default_row_per_page'], ((int) $currentPage - 1) * (int) $_SESSION['tenant']['default_row_per_page'])->go();
 
         $allStudentsCount = $this->get_record('fx_person', $filter_array);
         !isset($_SESSION['search_filter']['search_table']) || $_SESSION['search_filter']['search_table'] == null ? $allStudentsCount->search('') : $allStudentsCount->search($_SESSION['search_filter']['search_table']);
@@ -32,7 +56,7 @@ class Students extends Processor
         $this->with('currentPage', $currentPage)->with('allStudents', $allStudents)->with('allStudentsCount', count($allStudentsCount))->with('search_filter', $_SESSION['search_filter'])->show('resources/students/index');
     }
 
-    public function add()
+    public function create()
     {
         // Package limit Verification
         $allStudents = $this->get_record('fx_person', 'created_at')->where('org_id', $_SESSION['user_session']['org_id'])->go();
@@ -122,7 +146,10 @@ class Students extends Processor
         }
     }
 
-    public function update()
+    public function read($request = null)
+    {}
+
+    public function update($request = null)
     {
         extract($_POST);
         if (isset($_FILES)) {
@@ -153,7 +180,7 @@ class Students extends Processor
         }
     }
 
-    public function delete()
+    public function delete($request = null)
     {
         extract($_POST);
         $pattern = "/[\[\]\"]/s";

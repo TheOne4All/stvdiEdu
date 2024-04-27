@@ -47,7 +47,7 @@ function pageEntry() {
   $("#entry").change(function (e) {
     var entry = $("#entry option:selected").val();
     var url = $(this).attr("data-url") + "/" + entry;
-    // showLoader();
+    // window.location.href = encodeURI(url);
     window.location.replace(encodeURI(url));
   });
 }

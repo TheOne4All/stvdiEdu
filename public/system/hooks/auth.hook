@@ -2,7 +2,7 @@
 
 use PHPMailer\PHPMailer\PHPMailer;
 
-class Auth extends FynxUser
+class Auth extends Processor
 {
     public function __construct()
     {
@@ -33,7 +33,9 @@ class Auth extends FynxUser
     {
         $this->user->is_login() === true ? $this->redirect('dashboard') : null;
         $response = $this->user->login_user($_POST);
-        if ($response === 'session_already_exist') {
+        if (strpos($response, 'session_already_exist') !== false) {
+            $responseData = explode('_', $response);
+            $_POST['user_id'] = $responseData[0];
             $this->with('data', base64_encode(json_encode($_POST)))->show('resources/auth/exists');
         } elseif ($response === true) {
             $this->clusters->get_tenant($_POST['org_id']);
@@ -107,6 +109,89 @@ class Auth extends FynxUser
             } else {
                 $this->with('danger', ucwords(str_replace('_', ' ', $response)))->redirect('pages/home');
             }
+        }
+    }
+
+    public function admission($tenantId = null)
+    {
+        $this->user->is_login() === true ? $this->redirect('dashboard') : null;
+        is_null($tenantId) || $tenantId == "org" ? $this->redirect() : null;
+        $tenant_info = $this->get_record('fx_org', 'org_id,img,name')->where('org_id', $tenantId)->limit(1)->go();
+        empty($tenant_info) || $tenantId == "org" ? $this->redirect() : null;
+        $this->with('tenant_info', $tenant_info)->with('tenantId', $tenantId)->show('resources/auth/admission');
+    }
+
+    public function admit($tenantId)
+    {
+        $this->user->is_login() === true ? $this->redirect('dashboard') : null;
+        // if (is_null($tenantId)) {$tenantId = "ORG";}
+
+        extract($_POST);
+        if (isset($_FILES)) {
+            foreach ($_FILES as $key => $value) {
+                if (!empty($value['name'])) {
+                    $this->filesystem->allow_overwriting();
+                    $this->filesystem->set_input($key);
+                    $this->filesystem->set_destination_directory(FYNX_PUBLIC['media'] . 'user-profile/');
+                    // $this->filesystem->set_filename($user_id . '.%s');
+                    $this->filesystem->set_auto_filename('.%s');
+                    $this->filesystem->set_upload_function("copy");
+                    $this->filesystem->save();
+                    $img = $this->filesystem->get_info()->filename;
+                }
+            }
+        }
+        $user_array = [
+            'user_id' => $this->guidv4(),
+            'user_pass' => hash("sha512", md5("Password@1")),
+            'user_phone' => $phone,
+            'user_role' => 3,
+            'user_name' => strtolower($firstname . '.' . $lastname),
+            'user_email' => $email,
+            'org_id' => $tenantId,
+        ];
+        $Student_array = [
+            'user_id' => $user_array['user_id'],
+            'firstname' => $firstname,
+            'lastname' => $lastname,
+            'middlename' => $middlename,
+            'category_id' => $category_id,
+            'gender' => $gender,
+            'email' => $email,
+            'phone' => $phone,
+            'admission_no' => $this->random_str(12),
+            'is_active' => 0,
+            'img' => isset($img) ? $img : null,
+            'org_id' => $tenantId,
+        ];
+
+        if (is_null($Student_array['img'])) {unset($Student_array['img']);}
+        $user_insert = $this->add_record('fx_user', $user_array)->go();
+        $Student_insert = $this->add_record('fx_person', $Student_array)->go();
+        $result = array($user_insert, $Student_insert);
+        switch ($result) {
+            case array(false, true):
+                $this->delete_record('fx_person', ['user_id' => $user_array['user_id']])->and_where('org_id', $_SESSION['user_session']['org_id'])->go();
+                $this->with('danger', 'Student Admission was Unsuccessful!')->redirect();
+                break;
+            case array(true, false):
+                $this->delete_record('fx_user', ['user_id' => $user_array['user_id']])->and_where('org_id', $_SESSION['user_session']['org_id'])->go();
+                $this->with('danger', 'Student Admission was Unsuccessful!')->redirect();
+                break;
+            case array(false, false):
+                $this->with('danger', 'Student Admission was Unsuccessful!')->redirect();
+                break;
+            default:
+
+                // send credentials to student's email address
+
+                // end send email
+
+                isset($img) ? $_SESSION['user_session']['img'] = $img : null;
+                $_SESSION['log']['note'] = 'Admitted Student Successfully!';
+                $this->add_record('fx_log', $_SESSION['log'])->go();
+                $this->with('success', $_SESSION['log']['note'])->redirect('auth/signin/' . $tenantId);
+                break;
         }
     }
 

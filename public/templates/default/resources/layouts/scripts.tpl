@@ -84,36 +84,37 @@
 <!-- <script src="<?=FYNX_PUBLIC['template_url']?>default/assets/js/dashboard.js" type="text/javascript"></script> -->
 <!-- END PAGE LEVEL JS -->
 
-
-
-
-
-
-
-
-
-
 <!-- Custom Functions  -->
 <script src="<?=FYNX_PUBLIC['javascript_lib_url']?>custom.js"></script>
-<script>
-// Date Range Picker
-$(".singleDatePicker").daterangepicker({
-    singleDatePicker: true,
-    autoApply: true,
-    locale: {
-        format: "DD-MM-YYYY",
-    },
-});
 
-$(".rangeDatePicker").daterangepicker({
-    autoApply: true,
-    locale: {
-        format: "DD-MM-YYYY",
-    },
-});
-</script>
 <script>
 $(document).ready(function() {
+
+    // Date Range Picker
+    $(".singleDatePicker").daterangepicker({
+        singleDatePicker: true,
+        autoApply: true,
+        locale: {
+            format: "DD-MM-YYYY",
+        },
+    });
+    $(".rangeDatePicker").daterangepicker({
+        autoApply: true,
+        locale: {
+            format: "DD-MM-YYYY",
+        },
+    });
+
+    // Apply the plugin to the body
+    $('html').pgNotification({
+        style: 'circle',
+        message: 'this is it',
+        position: 'top-right',
+        timeout: 4000,
+        type: 'info',
+    }).show();
+
+    // $(".selectElement").select2();
     selectAll();
     singleSelect();
     pageEntry();

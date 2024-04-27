@@ -101,9 +101,9 @@
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="form-group form-group-default">
+                <div class="form-group form-group-default required">
                     <label class="label-sm" for="class_id">Class:</label>
-                    <select class="form-control full-width" id="class_id" name="class_id">
+                    <select class="form-control full-width selectElement" id="class_id" name="class_id">
                         <option value="JSS1">JSS1</option>
                         <option value="JSS2">Jss2</option>
                         <option value="SSS1">SSS1</option>
@@ -134,7 +134,7 @@
             </div>
             <div class="col-md-4">
                 <div class="form-group form-group-default">
-                    <label class="label-sm" for="category">Gender</label>
+                    <label class="label-sm" for="gender">Gender</label>
                     <select class="form-control full-width" id="gender" name="gender">
                         <option value="male">Male</option>
                         <option value="female">Female</option>
@@ -229,7 +229,7 @@
                     <div class="input-group">
                         <div class="custom-file">
                             <input type="file" class="custom-file-input" id="img" name="img">
-                            <label class="custom-file-label" for="image">Choose file</label>
+                            <label class="custom-file-label">Choose file</label>
                         </div>
                     </div>
                 </div>

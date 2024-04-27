@@ -1,0 +1,63 @@
+<?php
+
+class Api extends Processor
+{
+
+    public function __construct()
+    {
+        $this->moduleArr = ['students'];
+        foreach ($this->moduleArr as $class) {
+            require_once FYNX_PUBLIC['system'] . 'hooks/' . $class . '.hook';
+            $this->{$class} = new $class;
+        }
+        require_once FYNX_PUBLIC['system'] . 'helpers/clusters.php';
+        $this->clusters = new Clusters;
+    }
+
+    public function index()
+    {
+        // declare(strict_types=1);
+        $headers = [
+            "Access-Control-Allow-Origin: *",
+            "Content-Type: application/json; charset=UTF-8",
+        ];
+
+        $url = $this->clusters->getURI($_SERVER['REQUEST_URI']);
+        $props = '';
+        $urlArr = explode("/", $url);
+        unset($urlArr[0]);
+
+        if (!in_array($urlArr[1], $this->moduleArr)) {
+            http_response_code('404');
+            exit();
+        }
+
+        $module = $urlArr[1];
+
+        if (isset($urlArr[2])) {
+            unset($urlArr[1]);
+            foreach ($urlArr as $value) {
+                $props = $props . $value . "/";
+            }
+        }
+
+        // $request = isset($urlArr[2]) ? $urlArr[2] : null;
+
+        $this->students->process_request($_SERVER['REQUEST_METHOD'], $props);
+        // var_dump(json_encode($urlArr));
+
+        // switch ($urlArr[0]) {
+        //     case 'students':
+        //         # code...
+        //         break;
+
+        //     default:
+        //         # code...
+        //         break;
+        // }
+        // echo $route;exit();
+
+        // $this->clusters->proxy_request($redirect_url, null, 'post', $headers);
+    }
+
+}

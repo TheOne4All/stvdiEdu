@@ -691,7 +691,7 @@ class FynxUser extends Processor
                     'user_email' => $verify_response[0]['user_email'],
                 ];
                 $this->access = $this->_register_session($session_data);
-            } else { $this->access = 'session_already_exist';}
+            } else { $this->access = $verify_response[0]['user_id'] . '_session_already_exist';}
         } else { $this->access = $verify_response;}
         return $this->access;
     }
@@ -770,7 +770,8 @@ class FynxUser extends Processor
         $_SESSION['last_active_time'] = strtotime(date('Y-m-d h:i:s'));
         $_SESSION['authenticated'] = true;
         $_SESSION['logout'] = false;
-        return $this->replace_record($this->_sessionTableName, $user_session)->go();
+        $this->replace_record($this->_sessionTableName, $user_session)->go();
+        return true;
         exit();
     }
 

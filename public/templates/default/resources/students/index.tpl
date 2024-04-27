@@ -12,19 +12,19 @@
 
 <?php
 
-$addStudent = [
-    'name' => 'addStudent',
+$createStudent = [
+    'name' => 'createStudent',
     'header' => '<h5>Add Student</h5>',
     'file' => 'students/form.tpl',
-    'url' => FYNX_PUBLIC['url'] . 'students/add',
+    'url' => FYNX_PUBLIC['url'] . 'students/create',
     'classlist' => ['slide-up', 'modal-custom'],
     'xbutton' => '<i class="pg-icon">close</i>',
     'size' => 'lg',
 ];
-$this->modal($addStudent)->modal_end();
+$this->modal($createStudent)->modal_end();
 
-$editStudent = [
-    'name' => 'editStudent',
+$updateStudent = [
+    'name' => 'updateStudent',
     'header' => '<h5>Edit Student</h5>',
     'file' => 'students/form.tpl',
     'url' => FYNX_PUBLIC['url'] . 'students/update',
@@ -99,7 +99,7 @@ if (isset($_SESSION['search_filter']['search_table'])) {
             <div class="card-header row">
                 <div class="col-sm-1">
                     <select id="entry" name="entry" class="cs-select cs-skin-slide" data-init-plugin="cs-select"
-                        data-url="<?=FYNX_PUBLIC['url'] . 'students/index/' . $currentPage?>">
+                        data-url="<?=FYNX_PUBLIC['url'] . 'students/index/1'?>">
                         <option value="10" <?=$_SESSION['tenant']['default_row_per_page'] == 10 ? 'selected' : null?>>
                             10
                         </option>
@@ -135,7 +135,7 @@ if (isset($_SESSION['search_filter']['search_table'])) {
                         </div>
                     </span>
                     <span class="ml-2"><button class="btn btn-primary btn-lg btn-larger" data-toggle="modal"
-                            data-target="#addStudent"><i class="pg-icon">plus</i> Add Student</button></span>
+                            data-target="#createStudent"><i class="pg-icon">plus</i> Add Student</button></span>
                 </div>
                 <!-- <div class="clearfix"></div> -->
             </div>
@@ -171,10 +171,10 @@ if (isset($_SESSION['search_filter']['search_table'])) {
                                             class="pg-icon">list_bullets</i></button>
                                     <div class="dropdown-menu p-2">
                                         <button class="btn btn-primary btn-block btn-lg justify-content-start"
-                                            data-toggle="modal" data-target="#viewStudent<?=$key?>"><i
+                                            data-toggle="modal" data-target="#readStudent<?=$key?>"><i
                                                 class="pg-icon mr-2">eye</i>View</button>
                                         <button class="btn btn-primary btn-block btn-lg justify-content-start"
-                                            data-toggle="modal" data-target="#editStudent<?=$key?>"><i
+                                            data-toggle="modal" data-target="#updateStudent<?=$key?>"><i
                                                 class="pg-icon mr-2">edit</i>Edit</button>
                                         <button class="btn btn-primary btn-block btn-lg justify-content-start"
                                             data-toggle="modal" data-target="#deleteStudent<?=$key?>"><i
@@ -184,8 +184,8 @@ if (isset($_SESSION['search_filter']['search_table'])) {
                             </td>
                         </tr>
 
-                        <?php //$this->modal($viewStudent, $key)->modal_end();
-    $this->modal($editStudent, $key)->modal_end($value);
+                        <?php //$this->modal($readStudent, $key)->modal_end();
+    $this->modal($updateStudent, $key)->modal_end($value);
     $this->modal($deleteStudent, $key)->modal_hidden_field('user_id', $value['user_id'])->modal_end();
 }} else {?>
 

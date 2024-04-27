@@ -33,7 +33,7 @@ class Clusters extends Helpers
                     'county' => $check_tenant[0]['county'],
                     'country' => $check_tenant[0]['country'],
                     'org_id' => $check_tenant[0]['org_id'],
-                    'default_row_per_page' => (int) $check_tenant[0]['default_row_per_page'],
+                    'default_row_per_page' => $check_tenant[0]['default_row_per_page'],
                     'default_template' => $check_tenant[0]['default_template'],
                     'default_theme' => $check_tenant[0]['default_theme'],
                     'frontend_template' => $check_tenant[0]['frontend_template'],

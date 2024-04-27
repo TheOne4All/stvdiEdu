@@ -29,6 +29,10 @@
         rel="stylesheet" type="text/css" media="screen" />
     <link href="<?=FYNX_PUBLIC['template_url']?>default/assets/plugins/select2/css/select2.min.css" rel="stylesheet"
         type="text/css" media="screen" />
+    <link href="<?=FYNX_PUBLIC['template_url']?>default/assets/plugins/dropzone/css/dropzone.css" rel="stylesheet"
+        type="text/css" />
+    <link href="<?=FYNX_PUBLIC['template_url']?>default/assets/plugins/daterangepicker/daterangepicker.css"
+        rel="stylesheet" type="text/css" media="screen">
     <link class="main-stylesheet" href="<?=FYNX_PUBLIC['template_url']?>default/pages/css/pages.css" rel="stylesheet"
         type="text/css" />
     <!-- Please remove the file below for production: Contains demo classes -->
