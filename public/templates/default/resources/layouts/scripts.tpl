@@ -105,14 +105,17 @@ $(document).ready(function() {
         },
     });
 
-    // Apply the plugin to the body
+    // Display alert notification
+    <?php if (isset($_GET)) {foreach ($_GET as $key => $value) {
+    if (in_array($key, ['danger', 'info', 'warning', 'success', 'primary', 'secondary'])) {?>
     $('html').pgNotification({
         style: 'circle',
-        message: 'this is it',
+        message: '<?=$value?>',
         position: 'top-right',
         timeout: 4000,
-        type: 'info',
+        type: '<?=$key?>',
     }).show();
+    <?php }}}?>
 
     // $(".selectElement").select2();
     selectAll();
