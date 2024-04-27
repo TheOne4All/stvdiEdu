@@ -37,7 +37,7 @@ class Students extends Processor
 
     public function index($currentPage = 1, $entry = null)
     {
-        if (!is_null($entry)) {$_SESSION['tenant']['default_row_per_page'] = $entry;}
+        if ((int) $entry != 0) {$_SESSION['tenant']['default_row_per_page'] = $entry;}
         $filter_array = 'admission_no, firstname, lastname, middlename, address, email, phone, gender, category_id, user_id, rfid_code, is_active, created_at, disabled_at';
         if (isset($_POST) && !empty($_POST)) {
             extract($_POST);

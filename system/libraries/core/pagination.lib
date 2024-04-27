@@ -480,9 +480,9 @@ class FynxPagination
 
         for ($i = $this->loop['start']; $i <= $this->loop['end']; $i++) {
             if ($this->currentPage == $i) {
-                $paging .= '<option value="' . $this->pageLink . '/' . $i . '/' . $this->listPerPage . '" selected="selected">' . $i . '</option>';
+                $paging .= '<option value="' . $this->pageLink . '/' . $i . '" selected="selected">' . $i . '</option>';
             } else {
-                $paging .= '<option value="' . $this->pageLink . '/' . $i . '/' . $this->listPerPage . '">' . $i . '</option>';
+                $paging .= '<option value="' . $this->pageLink . '/' . $i . '">' . $i . '</option>';
             }
 
         }
@@ -600,7 +600,7 @@ class FynxPagination
 
         // Enabling the first button list
         if ($this->firstBtn && $this->currentPage > 1) {
-            $paging .= '<li class="paginate_button first active"><a href="' . $this->pageLink . '/1/' . $this->listPerPage . '" title="First">' . $this->firstBtnText . '</a></li>';
+            $paging .= '<li class="paginate_button first active"><a href="' . $this->pageLink . '/1" title="First">' . $this->firstBtnText . '</a></li>';
         } else if ($this->firstBtn) {
             $paging .= '<li class="paginate_button first inactive"><a title="First">' . $this->firstBtnText . '</a></li>';
         }
@@ -608,7 +608,7 @@ class FynxPagination
         // Enabling the previous button link
         if ($this->prevBtn && $this->currentPage > 1) {
             $prev = $this->currentPage - 1;
-            $paging .= '<li class="paginate_button previous active"><a href="' . $this->pageLink . '/' . $prev . '/' . $this->listPerPage . '" title="Previous">' . $this->prevBtnText . '</a></li>';
+            $paging .= '<li class="paginate_button previous active"><a href="' . $this->pageLink . '/' . $prev . '" title="Previous">' . $this->prevBtnText . '</a></li>';
         } else if ($this->prevBtn) {
             $paging .= '<li class="paginate_button previous inactive"><a title="Previous">' . $this->prevBtnText . '</a></li>';
         }
@@ -618,7 +618,7 @@ class FynxPagination
             if ($this->currentPage == $i) {
                 $paging .= '<li class="paginate_button inactive"><a class="current" title="Page ' . $i . '">' . $i . '</a></li>';
             } else {
-                $paging .= '<li class="paginate_button active"><a href="' . $this->pageLink . '/' . $i . '/' . $this->listPerPage . '" title="Page ' . $i . '">' . $i . '</a></li>';
+                $paging .= '<li class="paginate_button active"><a href="' . $this->pageLink . '/' . $i . '" title="Page ' . $i . '">' . $i . '</a></li>';
             }
 
         }
@@ -626,14 +626,14 @@ class FynxPagination
         // Enabling the next button link
         if ($this->nextBtn && $this->currentPage < $this->totalNumPages) {
             $next = $this->currentPage + 1;
-            $paging .= '<li class="paginate_button forward active"><a href="' . $this->pageLink . '/' . $next . '/' . $this->listPerPage . '" title="Next">' . $this->nextBtnText . '</a></li>';
+            $paging .= '<li class="paginate_button forward active"><a href="' . $this->pageLink . '/' . $next . '" title="Next">' . $this->nextBtnText . '</a></li>';
         } else if ($this->nextBtn) {
             $paging .= '<li class="paginate_button forward inactive"><a title="Next">' . $this->nextBtnText . '</a></li>';
         }
 
         // Enabling the last button link
         if ($this->lastBtn && $this->currentPage < $this->totalNumPages) {
-            $paging .= '<li class="paginate_button last active"><a href="' . $this->pageLink . '/' . $this->totalNumPages . '/' . $this->listPerPage . '" title="Last">' . $this->lastBtnText . '</a></li>';
+            $paging .= '<li class="paginate_button last active"><a href="' . $this->pageLink . '/' . $this->totalNumPages . '" title="Last">' . $this->lastBtnText . '</a></li>';
         } else if ($this->lastBtn) {
             $paging .= '<li class="paginate_button last inactive"><a title="Last">' . $this->lastBtnText . '</a></li>';
         }
